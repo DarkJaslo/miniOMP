@@ -21,6 +21,9 @@ worker(void *args) {
   //   1) save thread-specific data
   //   2) invoke the per-threads instance of function encapsulating the parallel region
   //   3) exit the function
+  miniomp_parallel_t* tmp_info = (miniomp_parallel_t*)args;
+  pthread_setspecific(miniomp_specifickey,(void*)(long)tmp_info->id);
+  tmp_info->fn(tmp_info->data);
   pthread_exit(NULL);
 }
 
@@ -29,6 +32,22 @@ GOMP_parallel (void (*fn) (void *), void *data, unsigned num_threads, unsigned i
   if(!num_threads) num_threads = omp_get_num_threads();
   printf("Starting a parallel region using %d threads\n", num_threads);
 
+  miniomp_threads = (pthread_t*)malloc(num_threads*sizeof(pthread_t));
+  miniomp_parallel = (miniomp_parallel_t*)malloc(num_threads*sizeof(miniomp_parallel_t));
+
   for (int i=0; i<num_threads; i++)
-        fn (data);
+  {
+    miniomp_parallel[i].id=i;
+    miniomp_parallel[i].fn=fn;
+    miniomp_parallel[i].data=data;
+    pthread_create(&miniomp_threads[i],NULL,worker,miniomp_parallel+i);
+  }
+
+  for (int i=0; i<num_threads; i++)
+  {
+    pthread_join(miniomp_threads[i],NULL);
+  }
+
+
+  free(miniomp_threads);
 }
