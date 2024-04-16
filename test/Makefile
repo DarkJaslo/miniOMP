@@ -1,6 +1,8 @@
 .SUFFIXES: -omp -gomp -asm
 CC = gcc
 
+MINIOMP = ../
+
 OPENMP	 = -fopenmp
 CFLAGS   = -Wall -g -O3 -std=gnu99 -march=native -I.
 CLIBS    = -L$(MINIOMP)/lib -lminiomp 
