@@ -1,0 +1,1 @@
+time ./exec.sh $1
