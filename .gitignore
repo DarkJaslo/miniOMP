@@ -1,2 +1,4 @@
 libminiomp.so
-tparallel1-omp
+*-omp
+*-asm
+*-gomp
