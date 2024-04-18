@@ -20,3 +20,13 @@
 #include "synchronization.h"
 #include "single.h"
 #include "task.h"
+
+typedef struct{
+  void (*fn) (void *);
+  void *data;
+  pthread_cond_t do_work;
+  pthread_mutex_t mutex;
+  unsigned int id;
+  bool stop;
+  bool done;
+} miniomp_thread_runtime;

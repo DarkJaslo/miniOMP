@@ -4,15 +4,13 @@
 // miniomp runtime library. parallel.h contains definitions of 
 // data types used here
 
-// Declaration of array for storing pthread identifier from 
-// pthread_create function
-pthread_t *miniomp_threads;
-
 // Global variable for parallel descriptor
 miniomp_parallel_t *miniomp_parallel;
 
 // Declaration of per-thread specific key
 pthread_key_t miniomp_specifickey;
+
+extern miniomp_thread_runtime* miniomp_threads_sync;
 
 // This is the prototype for the Pthreads starting function
 void *
@@ -32,22 +30,36 @@ GOMP_parallel (void (*fn) (void *), void *data, unsigned num_threads, unsigned i
   if(!num_threads) num_threads = omp_get_num_threads();
   printf("Starting a parallel region using %d threads\n", num_threads);
 
-  miniomp_threads = (pthread_t*)malloc(num_threads*sizeof(pthread_t));
-  miniomp_parallel = (miniomp_parallel_t*)malloc(num_threads*sizeof(miniomp_parallel_t));
-
   for (int i=0; i<num_threads; i++)
   {
-    miniomp_parallel[i].id=i;
-    miniomp_parallel[i].fn=fn;
-    miniomp_parallel[i].data=data;
-    pthread_create(&miniomp_threads[i],NULL,worker,miniomp_parallel+i);
+    miniomp_thread_runtime* runtime = miniomp_threads_sync+i;
+    pthread_mutex_lock(&runtime->mutex);
+    runtime->fn = fn;
+    runtime->data = data;
+    runtime->done = 0;
+    pthread_cond_signal(&runtime->do_work);
+    pthread_mutex_unlock(&runtime->mutex);
   }
 
-  for (int i=0; i<num_threads; i++)
+  int done_threads[num_threads];
+  int num_done_threads = 0;
+  for(int i = 0; i < num_threads; ++i)
+    done_threads[i] = 0;
+
+  int t = 0;
+  while (num_done_threads < num_threads)
   {
-    pthread_join(miniomp_threads[i],NULL);
+    if(done_threads[t]) continue;
+
+    miniomp_thread_runtime* runtime = miniomp_threads_sync+t;
+    pthread_mutex_lock(&runtime->mutex);
+    if(runtime->done)
+    {
+      //Thread is done
+      done_threads[t] = 1;
+      num_done_threads++;
+    } 
+    if(++t>=num_threads) t = 0;
+    pthread_mutex_unlock(&runtime->mutex);
   }
-
-
-  free(miniomp_threads);
 }

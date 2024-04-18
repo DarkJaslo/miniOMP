@@ -1,8 +1,5 @@
 #include <pthread.h>
 
-// Declaration of array for storing pthread identifiers from pthread_create function
-extern pthread_t *miniomp_threads;
-
 // Type declaration for parallel descriptor (arguments needed to create pthreads)
 typedef struct {
     void (*fn) (void *);
