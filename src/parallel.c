@@ -7,6 +7,9 @@
 // Global variable for parallel descriptor
 miniomp_parallel_t *miniomp_parallel;
 
+// Global semaphore for correct parallel termination
+sem_t miniomp_parallel_semaphore;
+
 // Declaration of per-thread specific key
 pthread_key_t miniomp_specifickey;
 
@@ -28,7 +31,9 @@ worker(void *args) {
 void
 GOMP_parallel (void (*fn) (void *), void *data, unsigned num_threads, unsigned int flags) {
   if(!num_threads) num_threads = omp_get_num_threads();
-  printf("Starting a parallel region using %d threads\n", num_threads);
+printf("Starting a parallel region using %d threads\n", num_threads);
+
+  sem_init(&miniomp_parallel_semaphore,0,-1*num_threads+1);
 
   for (int i=0; i<num_threads; i++)
   {
@@ -37,6 +42,7 @@ GOMP_parallel (void (*fn) (void *), void *data, unsigned num_threads, unsigned i
     runtime->fn = fn;
     runtime->data = data;
     runtime->done = 0;
+  printf("Signaling thread %d\n", i);
     pthread_cond_signal(&runtime->do_work);
     pthread_mutex_unlock(&runtime->mutex);
   }
@@ -49,7 +55,27 @@ GOMP_parallel (void (*fn) (void *), void *data, unsigned num_threads, unsigned i
   int t = 0;
   while (num_done_threads < num_threads)
   {
-    if(done_threads[t]) continue;
+    if(done_threads[t])
+    {
+      if(++t>=num_threads) t = 0;
+      continue;
+    }
+
+    /* 
+    printf("OK state: ");
+    for(int k = 0; k < num_threads; ++k)
+    {
+      if(done_threads[k])
+      {
+        printf("%d-Y ",k);
+      }
+      else
+      {
+        printf("%d-N ",k);
+      }
+    }
+    printf("\n");
+    */
 
     miniomp_thread_runtime* runtime = miniomp_threads_sync+t;
     pthread_mutex_lock(&runtime->mutex);
@@ -62,4 +88,8 @@ GOMP_parallel (void (*fn) (void *), void *data, unsigned num_threads, unsigned i
     if(++t>=num_threads) t = 0;
     pthread_mutex_unlock(&runtime->mutex);
   }
+printf("Ending parallel region\n");
+
+  //Wait for threads to be waiting here
+  sem_wait(&miniomp_parallel_semaphore);
 }

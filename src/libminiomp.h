@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <pthread.h>
+#include <semaphore.h>
 
 // Maximum number of threads to be supported by our implementation
 // To be used whenever you need to dimension thread-related structures
