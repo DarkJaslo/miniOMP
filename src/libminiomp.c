@@ -7,10 +7,10 @@ void fini_miniomp(void) __attribute__((destructor));
 // Declaration of array for storing the basic thread runtime information
 miniomp_thread_runtime * miniomp_threads_sync;
 
+int miniomp_active_threads;
+
 // Declaration of array for storing pthread identifiers from pthread_create function
 pthread_t *miniomp_threads;
-
-extern sem_t miniomp_parallel_semaphore;
 
 // Idle function for a thread
 void * thread_func(void* args)
@@ -23,15 +23,18 @@ void * thread_func(void* args)
   {
     //Wait for condition variable
     pthread_mutex_lock(&runtime->mutex);
-  printf("Prewait %d\n", runtime->id);
-    sem_post(&miniomp_parallel_semaphore);
-    pthread_cond_wait(&runtime->do_work,&runtime->mutex);
-  printf("Postwait %d\n", runtime->id);
-    //sem_wait(&runtime->semaphore);
+    // If runtime->done is set to 0, it is interpreted as work having been given. 
+    // This thread is late to the cond_wait and can continue executing immediately.
+    while(runtime->done)
+    {
+    //printf("Prewait %d\n", runtime->id);
+      pthread_cond_wait(&runtime->do_work,&runtime->mutex);
+    //printf("Postwait %d\n", runtime->id);
+    }
+    pthread_mutex_unlock(&runtime->mutex);
 
     if(runtime->stop)
     {
-      pthread_mutex_unlock(&runtime->mutex);
       return (NULL);
     }
 
@@ -40,8 +43,14 @@ void * thread_func(void* args)
     runtime->data = NULL;
 
     //Notify work done
+    //printf("Thread %d value = %d\n", runtime->id, miniomp_active_threads);
+
+
+    //No es fa atomic
+    __sync_synchronize();
+    __sync_add_and_fetch(&miniomp_active_threads,-1);
+    printf("Thread %d value = %d\n", runtime->id, miniomp_active_threads);
     runtime->done = 1;
-    pthread_mutex_unlock(&runtime->mutex);
   }
 
   return (NULL);
@@ -62,6 +71,7 @@ init_miniomp(void) {
   //Create thread pool
   miniomp_threads = (pthread_t*)malloc( miniomp_icv.nthreads_var*sizeof(pthread_t));
   miniomp_threads_sync = (miniomp_thread_runtime*)malloc( miniomp_icv.nthreads_var*sizeof(miniomp_thread_runtime));
+  miniomp_active_threads = 0;
 
   for(int i = 0; i < miniomp_icv.nthreads_var; ++i)
   {
@@ -70,10 +80,9 @@ init_miniomp(void) {
     miniomp_thread_runtime* runtime = miniomp_threads_sync+i;
 
     runtime->stop = 0;
-    runtime->done = 0;
+    runtime->done = 1;
     pthread_cond_init(&runtime->do_work,NULL);
     pthread_mutex_init(&runtime->mutex,NULL);
-    sem_init(&miniomp_parallel_semaphore,0,0);
     runtime->id = i;
 
     pthread_create(miniomp_threads+i,NULL,thread_func,(void*)(miniomp_threads_sync+i));
@@ -92,6 +101,7 @@ fini_miniomp(void) {
   for(int i = 0; i < miniomp_icv.nthreads_var; ++i)
   {
     miniomp_threads_sync[i].stop = true;
+    miniomp_threads_sync[i].done = 0;
     pthread_cond_signal(&miniomp_threads_sync[i].do_work); //In case it was waiting
   }
 
@@ -106,7 +116,6 @@ fini_miniomp(void) {
     miniomp_thread_runtime* runtime = miniomp_threads_sync;
     pthread_mutex_destroy(&runtime->mutex);
     pthread_cond_destroy(&runtime->do_work);
-    sem_destroy(&miniomp_parallel_semaphore);
   }
 
   // Free thread pool

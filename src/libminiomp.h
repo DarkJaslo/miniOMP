@@ -4,8 +4,9 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdint.h>
+#include <stddef.h>
 #include <pthread.h>
-#include <semaphore.h>
+#include <unistd.h>
 
 // Maximum number of threads to be supported by our implementation
 // To be used whenever you need to dimension thread-related structures
