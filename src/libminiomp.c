@@ -7,7 +7,7 @@ void fini_miniomp(void) __attribute__((destructor));
 // Declaration of array for storing the basic thread runtime information
 miniomp_thread_runtime * miniomp_threads_sync;
 
-int miniomp_active_threads;
+volatile int miniomp_active_threads;
 
 // Declaration of array for storing pthread identifiers from pthread_create function
 pthread_t *miniomp_threads;
@@ -23,8 +23,7 @@ void * thread_func(void* args)
   {
     //Wait for condition variable
     pthread_mutex_lock(&runtime->mutex);
-    // If runtime->done is set to 0, it is interpreted as work having been given. 
-    // This thread is late to the cond_wait and can continue executing immediately.
+    // If runtime->fn != NULL, this thread is late to the cond_wait and can continue executing immediately.
     while(runtime->done)
     {
     //printf("Prewait %d\n", runtime->id);
@@ -40,19 +39,19 @@ void * thread_func(void* args)
 
     //Do work
     runtime->fn(runtime->data);
+
+    pthread_mutex_lock(&runtime->mutex);
+    runtime->fn = NULL;
     runtime->data = NULL;
-
-    //Notify work done
-    //printf("Thread %d value = %d\n", runtime->id, miniomp_active_threads);
-
-
-    //No es fa atomic
-    __sync_synchronize();
-    __sync_add_and_fetch(&miniomp_active_threads,-1);
-    printf("Thread %d value = %d\n", runtime->id, miniomp_active_threads);
     runtime->done = 1;
+    //__sync_add_and_fetch(&miniomp_active_threads,-1);
+    pthread_mutex_unlock(&runtime->mutex);
+
+    printf("Prewait by thread %d\n", runtime->id);
+    miniomp_barrier_wait(&miniomp_barrier);
   }
 
+  printf("Thread %d is returning\n", runtime->id);
   return (NULL);
 }
 
@@ -65,6 +64,8 @@ init_miniomp(void) {
   // Initialize Pthread thread-specific data, now just used to store the OpenMP thread identifier
   pthread_key_create(&miniomp_specifickey, NULL);
   pthread_setspecific(miniomp_specifickey, (void *) 0); // implicit initial pthread with id=0
+
+  miniomp_barrier_init(&miniomp_barrier,miniomp_icv.nthreads_var);
 
   // Initialize pthread and parallel data structures 
 
@@ -81,6 +82,8 @@ init_miniomp(void) {
 
     runtime->stop = 0;
     runtime->done = 1;
+    runtime->fn = NULL;
+    runtime->data = NULL;
     pthread_cond_init(&runtime->do_work,NULL);
     pthread_mutex_init(&runtime->mutex,NULL);
     runtime->id = i;
@@ -98,17 +101,24 @@ fini_miniomp(void) {
   // delete Pthread thread-specific data
   pthread_key_delete(miniomp_specifickey);
 
+  miniomp_barrier_destroy(&miniomp_barrier);
+
+printf("Telling all threads to stop...\n");
   for(int i = 0; i < miniomp_icv.nthreads_var; ++i)
   {
-    miniomp_threads_sync[i].stop = true;
+    pthread_mutex_lock(&miniomp_threads_sync[i].mutex);
+    miniomp_threads_sync[i].stop = 1;
     miniomp_threads_sync[i].done = 0;
+    miniomp_threads_sync[i].fn = NULL;
     pthread_cond_signal(&miniomp_threads_sync[i].do_work); //In case it was waiting
+    pthread_mutex_unlock(&miniomp_threads_sync[i].mutex);
   }
-
+printf("Joining all threads...\n");
   for(int t = 0; t < miniomp_icv.nthreads_var; ++t)
   {
     pthread_join(miniomp_threads[t],NULL);
   }
+printf("Joined threads. Destroying mutexes and condition variables...\n");
 
   //Destroy mutexes and condition variables before freeing
   for(int t = 0; t < miniomp_icv.nthreads_var; ++t)
@@ -117,11 +127,11 @@ fini_miniomp(void) {
     pthread_mutex_destroy(&runtime->mutex);
     pthread_cond_destroy(&runtime->do_work);
   }
-
+printf("Freeing thread pool...\n");
   // Free thread pool
   free(miniomp_threads);
   free(miniomp_threads_sync);
 
   // free other data structures allocated during library initialization
-  printf ("mini-omp is finalized\n");
+printf ("mini-omp is finalized\n");
 }
