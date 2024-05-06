@@ -7,8 +7,6 @@ void fini_miniomp(void) __attribute__((destructor));
 // Declaration of array for storing the basic thread runtime information
 miniomp_thread_runtime * miniomp_threads_sync;
 
-volatile int miniomp_active_threads;
-
 // Declaration of array for storing pthread identifiers from pthread_create function
 pthread_t *miniomp_threads;
 
@@ -26,9 +24,9 @@ void * thread_func(void* args)
     // If runtime->fn != NULL, this thread is late to the cond_wait and can continue executing immediately.
     while(runtime->done)
     {
-    //printf("Prewait %d\n", runtime->id);
+    //printf("Pre-wait %d\n", runtime->id);
       pthread_cond_wait(&runtime->do_work,&runtime->mutex);
-    //printf("Postwait %d\n", runtime->id);
+    //printf("Post-wait %d\n", runtime->id);
     }
     pthread_mutex_unlock(&runtime->mutex);
 
@@ -44,10 +42,9 @@ void * thread_func(void* args)
     runtime->fn = NULL;
     runtime->data = NULL;
     runtime->done = 1;
-    //__sync_add_and_fetch(&miniomp_active_threads,-1);
     pthread_mutex_unlock(&runtime->mutex);
 
-    printf("Prewait by thread %d\n", runtime->id);
+    //printf("Pre-barrier by thread %d\n", runtime->id);
     miniomp_barrier_wait(&miniomp_barrier);
   }
 
@@ -72,7 +69,6 @@ init_miniomp(void) {
   //Create thread pool
   miniomp_threads = (pthread_t*)malloc( miniomp_icv.nthreads_var*sizeof(pthread_t));
   miniomp_threads_sync = (miniomp_thread_runtime*)malloc( miniomp_icv.nthreads_var*sizeof(miniomp_thread_runtime));
-  miniomp_active_threads = 0;
 
   for(int i = 0; i < miniomp_icv.nthreads_var; ++i)
   {

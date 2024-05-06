@@ -35,16 +35,12 @@ miniomp_barrier_t miniomp_barrier;
 void miniomp_barrier_init(miniomp_barrier_t* barrier, int count)
 {
   barrier->threads = count;
-  barrier->waiting = 0;
-  barrier->exited  = 0;
   pthread_mutex_init(&barrier->mutex,NULL);
 }
 
 void miniomp_barrier_set(miniomp_barrier_t* barrier, int count)
 {
   barrier->threads = count;
-  barrier->waiting = 0;
-  barrier->exited  = 0;
 }
 
 void miniomp_barrier_destroy(miniomp_barrier_t* barrier)
@@ -54,34 +50,69 @@ void miniomp_barrier_destroy(miniomp_barrier_t* barrier)
 
 void miniomp_barrier_wait(miniomp_barrier_t* barrier)
 {
-  printf("Entering wait\n");
+  //We want to give one thread the task of mantaining the barrier
+
+  //int id = (int)(long)pthread_getspecific(miniomp_specifickey);
+  //printf("Thread %d entering wait\n", id);
+
+  miniomp_barrier_data* data_pointer;
+  miniomp_barrier_data data; //only one thread uses it
+
   pthread_mutex_lock(&barrier->mutex);
-  barrier->waiting++;
-  printf("Barrier value: %d\n", barrier->waiting);
-  printf("Barrier exited: %d\n", barrier->exited);
-  printf("Barrier threads: %d\n", barrier->threads);
-  pthread_mutex_unlock(&barrier->mutex);
-
-
-  int id = (int)(long)pthread_getspecific(miniomp_specifickey);
-
-  while (1)
+  if(!barrier->data)
   {
-
-    //printf("Thread %d Iterate\n", id);
-    __sync_synchronize();
-    if(barrier->waiting >= barrier->threads)
-    {
-      pthread_mutex_lock(&barrier->mutex);
-      if(++barrier->exited == barrier->threads)
-      {
-        barrier->exited = 0;
-        barrier->waiting -= barrier->threads;
-      }
-      pthread_mutex_unlock(&barrier->mutex);
-      return;
-    }
+    pthread_mutex_init(&data.mutex,NULL);
+    pthread_cond_init(&data.cond,NULL);
+    data.waiting = 0;
+    data.done = 0;
+    barrier->data = &data;
   }
+
+  data_pointer = barrier->data; //This is not equivalent to using barrier->data, as it gets assigned NULL later
+
+  pthread_mutex_lock(&data_pointer->mutex);
+  data_pointer->waiting++;
+
+  if(data_pointer->waiting < barrier->threads)
+  {
+    pthread_mutex_unlock(&barrier->mutex);
+    do
+    {
+      pthread_cond_wait(&data_pointer->cond, &data_pointer->mutex);
+    }
+    while(!data_pointer->done);
+  }
+  else //This is the last thread
+  {
+    //wake up the other threads
+    data_pointer->done = 1;
+    barrier->data = NULL;
+    pthread_mutex_unlock(&barrier->mutex);
+    pthread_cond_broadcast(&data_pointer->cond);
+  }
+
+  data_pointer->waiting--;
+
+  if(data_pointer == &data) //Owner thread (last to exit)
+  {
+    while(data_pointer->waiting != 0)
+    {
+      pthread_cond_wait(&data_pointer->cond, &data_pointer->mutex);
+    }
+
+    pthread_mutex_unlock(&data_pointer->mutex);
+    pthread_cond_destroy(&data_pointer->cond);
+    pthread_mutex_destroy(&data_pointer->mutex);
+  }
+  else if(data_pointer->waiting == 0) //The last one, sends a signal to the owner thread
+  {
+    pthread_cond_signal(&data_pointer->cond);
+    pthread_mutex_unlock(&data_pointer->mutex);
+  }
+  else{
+    pthread_mutex_unlock(&data_pointer->mutex); //Any normal thread
+  }
+  //printf("Thread %d exiting wait\n", id);
 }
 
 void 

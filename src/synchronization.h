@@ -7,12 +7,19 @@ extern pthread_mutex_t miniomp_named_lock;
 // Default barrier within a parallel region
 //extern pthread_barrier_t miniomp_barrier;
 
-typedef struct 
+typedef struct
 {
     pthread_mutex_t mutex;
-    int             threads;
+    pthread_cond_t  cond;
     int             waiting;
-    int             exited;
+    int             done;
+} miniomp_barrier_data;
+
+typedef struct 
+{
+    miniomp_barrier_data* data;
+    pthread_mutex_t mutex;
+    int             threads;
 } miniomp_barrier_t;
 
 extern miniomp_barrier_t miniomp_barrier;
