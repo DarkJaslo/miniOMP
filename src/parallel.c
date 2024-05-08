@@ -18,7 +18,8 @@ GOMP_parallel (void (*fn) (void *), void *data, unsigned num_threads, unsigned i
 //printf("Starting a parallel region using %d threads\n", num_threads);
 
   //We set the number of threads the barrier at the end of parallel needs to wait for
-  miniomp_barrier_set(&miniomp_barrier, num_threads+1);
+  miniomp_barrier_set(&miniomp_barrier, num_threads);
+  miniomp_barrier_set(&miniomp_parallel_barrier, num_threads+1);
   
   for (int i=0; i<num_threads; i++)
   {
@@ -32,6 +33,6 @@ GOMP_parallel (void (*fn) (void *), void *data, unsigned num_threads, unsigned i
     pthread_mutex_unlock(&runtime->mutex);
   }
 
-  GOMP_barrier();
+  miniomp_barrier_wait(&miniomp_parallel_barrier);
 //printf("Ending parallel region\n");
 }

@@ -22,7 +22,11 @@ typedef struct
     int             threads;
 } miniomp_barrier_t;
 
+//To be used in normal GOMP_barrier()
 extern miniomp_barrier_t miniomp_barrier;
+
+//To be specifically used in parallel regions so that an additional thread waits for it
+extern miniomp_barrier_t miniomp_parallel_barrier;
 
 // Functions implemented in this module
 void GOMP_critical_start (void);

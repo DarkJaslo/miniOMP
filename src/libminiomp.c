@@ -44,7 +44,7 @@ void * thread_func(void* args)
     runtime->done = 1;
     pthread_mutex_unlock(&runtime->mutex);
 
-    GOMP_barrier();
+    miniomp_barrier_wait(&miniomp_parallel_barrier);
   }
 
   printf("Thread %d is returning\n", runtime->id);
@@ -60,8 +60,6 @@ init_miniomp(void) {
   // Initialize Pthread thread-specific data, now just used to store the OpenMP thread identifier
   pthread_key_create(&miniomp_specifickey, NULL);
   pthread_setspecific(miniomp_specifickey, (void *) 0); // implicit initial pthread with id=0
-
-  miniomp_barrier_init(&miniomp_barrier,miniomp_icv.nthreads_var);
 
   // Initialize pthread and parallel data structures 
 
@@ -87,6 +85,11 @@ init_miniomp(void) {
   }
 
   // Initialize OpenMP default locks and default barrier
+  pthread_mutex_init(&miniomp_default_lock, NULL);
+  pthread_mutex_init(&miniomp_named_lock, NULL);
+  miniomp_barrier_init(&miniomp_barrier,miniomp_icv.nthreads_var);
+  miniomp_barrier_init(&miniomp_parallel_barrier,miniomp_icv.nthreads_var);
+
   // Initialize OpenMP workdescriptors for single 
   // Initialize OpenMP task queue for task and taskloop
 }
@@ -95,8 +98,6 @@ void
 fini_miniomp(void) {
   // delete Pthread thread-specific data
   pthread_key_delete(miniomp_specifickey);
-
-  miniomp_barrier_destroy(&miniomp_barrier);
 
 printf("Telling all threads to stop...\n");
   for(int i = 0; i < miniomp_icv.nthreads_var; ++i)
@@ -128,5 +129,9 @@ printf("Freeing thread pool...\n");
   free(miniomp_threads_sync);
 
   // free other data structures allocated during library initialization
+  pthread_mutex_destroy(&miniomp_default_lock);
+  pthread_mutex_destroy(&miniomp_named_lock);
+  miniomp_barrier_destroy(&miniomp_barrier);
+  miniomp_barrier_destroy(&miniomp_parallel_barrier);
 printf ("mini-omp is finalized\n");
 }
