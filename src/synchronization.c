@@ -2,25 +2,26 @@
 
 // Default lock for unnamed critical sections
 pthread_mutex_t miniomp_default_lock;
+// Defualt lock for named critical sections
 pthread_mutex_t miniomp_named_lock;
 
 void 
-GOMP_critical_start (void) {
-  //printf("TBI: Entering an unnamed critical, don't know if anyone else is alrady in. I proceed\n");
+GOMP_critical_start (void) 
+{
   pthread_mutex_lock(&miniomp_default_lock);
 }
 
 void 
-GOMP_critical_end (void) {
-  //printf("TBI: Exiting an unnamed critical section. I can not inform anyone else, bye!\n");
+GOMP_critical_end (void) 
+{
   pthread_mutex_unlock(&miniomp_default_lock);
 }
 
 void 
 GOMP_critical_name_start (void **pptr) {
-  pthread_mutex_lock(&miniomp_named_lock);
-
+  pthread_mutex_lock(&miniomp_named_lock); //To ensure only one thread allocates the mutex
   pthread_mutex_t * plock = *pptr;
+
   // if plock is NULL it means that the lock associated to the name has not yet been allocated and initialized
   if(!plock)
   {
@@ -31,7 +32,6 @@ GOMP_critical_name_start (void **pptr) {
   }
   pthread_mutex_unlock(&miniomp_named_lock);
   pthread_mutex_lock(plock);
-//printf("TBI: Entering a named critical %p (%p), don't know if anyone else is already in. I proceed\n", pptr, plock);
 }
 
 // TODO: free plock
