@@ -44,8 +44,7 @@ void * thread_func(void* args)
     runtime->done = 1;
     pthread_mutex_unlock(&runtime->mutex);
 
-    //printf("Pre-barrier by thread %d\n", runtime->id);
-    miniomp_barrier_wait(&miniomp_barrier);
+    GOMP_barrier();
   }
 
   printf("Thread %d is returning\n", runtime->id);
