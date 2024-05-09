@@ -21,12 +21,14 @@ GOMP_parallel (void (*fn) (void *), void *data, unsigned num_threads, unsigned i
   {
     pthread_barrier_destroy(&miniomp_barrier);
     pthread_barrier_init(&miniomp_barrier, NULL, num_threads);
+    miniomp_barrier_count = num_threads;
   }
 
   if(num_threads+1 != miniomp_parallel_barrier_count)
   {
     pthread_barrier_destroy(&miniomp_parallel_barrier);
     pthread_barrier_init(&miniomp_parallel_barrier, NULL, num_threads+1);
+    miniomp_parallel_barrier_count = num_threads+1;
   }
   
   for (int i=0; i<num_threads; i++)
