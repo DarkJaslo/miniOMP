@@ -2,3 +2,4 @@ libminiomp.so
 *-omp
 *-asm
 *-gomp
+.vscode
