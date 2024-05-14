@@ -97,6 +97,8 @@ init_miniomp(void) {
   miniomp_barrier_count = miniomp_icv.nthreads_var+1;
 
   // Initialize OpenMP workdescriptors for single 
+  miniomp_single.value = 0;
+
   // Initialize OpenMP task queue for task and taskloop
 }
 

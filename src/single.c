@@ -8,7 +8,17 @@ miniomp_single_t miniomp_single;
 // the one that first reached the construct. 
 
 bool
-GOMP_single_start (void) {
-  printf("TBI: Entering into single, don't know if anyone else arrived before, I proceed\n");
-  return(true);
+GOMP_single_start (void) 
+{
+  if(__sync_bool_compare_and_swap(&miniomp_single.value,0,1))
+  {
+    GOMP_barrier();
+    miniomp_single.value = 0;
+    return 1;
+  }
+  else
+  {
+    GOMP_barrier();
+    return 0;
+  }
 }
