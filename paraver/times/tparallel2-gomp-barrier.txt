@@ -1,0 +1,4 @@
+gcc -Wall -g -O3 -std=gnu99 -march=native -I. -fopenmp tparallel2.c -o tparallel2-gomp -lm
+Execution time for goo(N/100000): 0.022533 with total=42163385492.303741
+Execution time for goo(N/10000): 0.029553 with total=13332329183.947817
+Execution time for goo(N/1000): 0.100439 with total=4213166622.166499

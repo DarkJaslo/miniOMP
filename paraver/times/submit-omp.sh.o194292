@@ -1,0 +1,17 @@
+gcc -Wall -g -O3 -std=gnu99 -march=native -I. -fopenmp tsynch2.c -o tsynch2-omp -L..//lib -lminiomp  -lm
+
+N = 100000
+
+
+mini-omp is being initialized
+Setting nthreads_var ICV to 20
+Execution time with 20 threads:
+  - named critical: 0.637059
+  - unnamed critical: 0.360802
+  - barrier: 2.181364
+Check value=2200004000000.000000
+Telling all threads to stop...
+Joining all threads...
+Joined threads. Destroying mutexes and condition variables...
+Freeing thread pool...
+mini-omp is finalized
