@@ -17,6 +17,8 @@ GOMP_parallel (void (*fn) (void *), void *data, unsigned num_threads, unsigned i
   if(!num_threads) num_threads = omp_get_num_threads();
 //printf("Starting a parallel region using %d threads\n", num_threads);
 
+  int single_count = miniomp_single.value;
+
   if(num_threads != miniomp_barrier_count)
   {
     pthread_barrier_destroy(&miniomp_barrier);
@@ -45,5 +47,16 @@ GOMP_parallel (void (*fn) (void *), void *data, unsigned num_threads, unsigned i
 
   pthread_barrier_wait(&miniomp_parallel_barrier);
   //miniomp_barrier_wait(&miniomp_parallel_barrier);
+
+  // Some threads may have outdated values
+  if(single_count != miniomp_single.value && num_threads < miniomp_icv.nthreads_var)
+  {
+    for(int i = num_threads; i < miniomp_icv.nthreads_var; ++i)
+    {
+      miniomp_thread_runtime* runtime = miniomp_threads_sync+i;
+      runtime->single_count = miniomp_single.value;
+    }
+  }
+
 //printf("Ending parallel region\n");
 }

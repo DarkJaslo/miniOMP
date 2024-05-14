@@ -31,4 +31,5 @@ typedef struct{
   unsigned int id;
   bool stop;
   bool done;
+  int single_count; //keeps track of single constructs
 } miniomp_thread_runtime;
