@@ -16,6 +16,7 @@ void * thread_func(void* args)
   miniomp_thread_runtime* runtime = (miniomp_thread_runtime*)args;
 
   pthread_setspecific(miniomp_specifickey,(void*)(long)runtime->id);
+  pthread_setspecific(miniomp_single_key,(void*)(long)0);
 
   while(!runtime->stop)
   {
@@ -61,6 +62,7 @@ init_miniomp(void) {
   // Initialize Pthread thread-specific data, now just used to store the OpenMP thread identifier
   pthread_key_create(&miniomp_specifickey, NULL);
   pthread_setspecific(miniomp_specifickey, (void *) 0); // implicit initial pthread with id=0
+  pthread_key_create(&miniomp_single_key,NULL);
 
   // Initialize pthread and parallel data structures 
 
@@ -106,6 +108,7 @@ void
 fini_miniomp(void) {
   // delete Pthread thread-specific data
   pthread_key_delete(miniomp_specifickey);
+  pthread_key_delete(miniomp_single_key);
 
 printf("Telling all threads to stop...\n");
   for(int i = 0; i < miniomp_icv.nthreads_var; ++i)
