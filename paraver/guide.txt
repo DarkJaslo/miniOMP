@@ -1,0 +1,13 @@
+tparallel2-*-nobarrier
+
+No barrier, just a counter
+
+
+tparallel2-*-barrier:
+
+Slow barrier version
+
+
+tsynch2-*-barrier
+
+Slow barrier version
