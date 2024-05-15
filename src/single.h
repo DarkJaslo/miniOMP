@@ -1,6 +1,5 @@
 // Type declaration for single work sharing descriptor
 typedef struct {
-    // complete the definition of single descriptor
     int value;
 } miniomp_single_t;
 

@@ -23,6 +23,7 @@
 #include "single.h"
 #include "task.h"
 
+// Stores all relevant data for a thread in execution
 typedef struct{
   void (*fn) (void *);
   void *data;

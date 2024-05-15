@@ -21,7 +21,7 @@ void * thread_func(void* args)
   {
     //Wait for condition variable
     pthread_mutex_lock(&runtime->mutex);
-    // If runtime->fn != NULL, this thread is late to the cond_wait and can continue executing immediately.
+    // If done is 0, this thread is late to the cond_wait and can continue executing immediately.
     while(runtime->done)
     {
     //printf("Pre-wait %d\n", runtime->id);
