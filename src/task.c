@@ -13,30 +13,40 @@ void TQinit(miniomp_taskqueue_t *task_queue) {
 
 // Checks if the task queue is empty
 bool TQis_empty(miniomp_taskqueue_t *task_queue) {
-    return (task_queue->num_elems==0);
+    pthread_mutex_lock(&task_queue->lock_taskqueue);
+    bool result = (task_queue->num_elems==0);
+    pthread_mutex_unlock(&task_queue->lock_taskqueue);
+    return result;
 }
 
 // Checks if the task queue is full
 bool TQis_full(miniomp_taskqueue_t *task_queue) {
-    return (task_queue->num_elems==MAXELEMENTS_TQ);
+    pthread_mutex_lock(&task_queue->lock_taskqueue);
+    bool result = (task_queue->num_elems==MAXELEMENTS_TQ);
+    pthread_mutex_unlock(&task_queue->lock_taskqueue);
+    return result;
 }
 
 // Enqueues the task descriptor at the tail of the task queue
 void TQenqueue(miniomp_taskqueue_t *task_queue, miniomp_task_t *task_descriptor) {
+    pthread_mutex_lock(&task_queue->lock_taskqueue);
     task_queue->queue[task_queue->tail] = task_descriptor;
     task_queue->tail++;
     if (task_queue->tail == MAXELEMENTS_TQ)
         task_queue->tail = 0;
     task_queue->num_elems++;
+    pthread_mutex_unlock(&task_queue->lock_taskqueue);
 }
 
 // Dequeue the task descriptor at the head of the task queue
 miniomp_task_t * TQdequeue(miniomp_taskqueue_t *task_queue) { 
+    pthread_mutex_lock(&task_queue->lock_taskqueue);
     miniomp_task_t *out = task_queue->queue[task_queue->head];
     task_queue->head++;
     if (task_queue->head == MAXELEMENTS_TQ)
         task_queue->head = 0;
     task_queue->num_elems--;
+    pthread_mutex_unlock(&task_queue->lock_taskqueue);
     return(out);
 }
 
