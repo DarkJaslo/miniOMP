@@ -1,6 +1,7 @@
 // Type declaration for Internal Control Variables (ICV) structure
 typedef struct {
   int nthreads_var;
+  int parallel_threads;
   // Add other ICVs if needed
 } miniomp_icv_t;
 

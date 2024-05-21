@@ -18,6 +18,11 @@ GOMP_parallel (void (*fn) (void *), void *data, unsigned num_threads, unsigned i
   //Save for later
   int single_count = miniomp_single.value;
 
+  if(num_threads != miniomp_icv.parallel_threads)
+  {
+    miniomp_icv.parallel_threads = num_threads;
+  }
+
   //Recreate barriers if numbers don't match
   if(num_threads != miniomp_barrier_count)
   {
