@@ -63,8 +63,11 @@ init_miniomp(void) {
   pthread_setspecific(miniomp_specifickey, (void *) 0); // implicit initial pthread with id=0
 
   // Initialize pthread and parallel data structures 
+  named_criticals.first = NULL;
+  named_criticals.last = NULL;
 
   //Create thread pool
+  miniomp_icv.parallel_threads = miniomp_icv.nthreads_var;
   miniomp_threads = (pthread_t*)malloc( miniomp_icv.nthreads_var*sizeof(pthread_t));
   miniomp_threads_sync = (miniomp_thread_runtime*)malloc( miniomp_icv.nthreads_var*sizeof(miniomp_thread_runtime));
 
@@ -144,5 +147,13 @@ printf("Freeing thread pool...\n");
   //miniomp_barrier_destroy(&miniomp_parallel_barrier);
   pthread_barrier_destroy(&miniomp_barrier);
   pthread_barrier_destroy(&miniomp_parallel_barrier);
+
+  if(named_criticals.first)
+  {
+    printf("Freeing named criticals...\n");
+    miniomp_linked_list_destroy(named_criticals.first);
+  }
+
+
 printf ("mini-omp is finalized\n");
 }
