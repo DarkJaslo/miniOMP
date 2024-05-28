@@ -3,7 +3,7 @@
 #include <math.h>
 #include "omp.h"
 
-#define N     1000000
+#define N     100000 //Original had 1.000.000 -> takes too long
 #define NREPS 10
 
 volatile double result=0.0, result_even=0.0, result_odd=0.0;
