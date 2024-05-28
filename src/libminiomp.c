@@ -32,6 +32,7 @@ void * thread_func(void* args)
 
     if(runtime->stop)
     {
+      //printf("I was told to stop %d\n", runtime->id);
       return (NULL);
     }
 
@@ -44,11 +45,11 @@ void * thread_func(void* args)
     runtime->done = 1;
     pthread_mutex_unlock(&runtime->mutex);
 
-    //miniomp_barrier_wait(&miniomp_parallel_barrier);
-    pthread_barrier_wait(&miniomp_parallel_barrier);
+    miniomp_barrier_wait(&miniomp_parallel_barrier);
+    //pthread_barrier_wait(&miniomp_parallel_barrier);
   }
 
-  printf("Thread %d is returning\n", runtime->id);
+  //printf("Thread %d is returning\n", runtime->id);
   return (NULL);
 }
 
@@ -93,12 +94,12 @@ init_miniomp(void) {
   pthread_mutex_init(&miniomp_default_lock, NULL);
   pthread_mutex_init(&miniomp_named_lock, NULL);
 
-  //miniomp_barrier_init(&miniomp_barrier,miniomp_icv.nthreads_var);
-  //miniomp_barrier_init(&miniomp_parallel_barrier,miniomp_icv.nthreads_var);
-  pthread_barrier_init(&miniomp_barrier, NULL, miniomp_icv.nthreads_var);
-  miniomp_barrier_count = miniomp_icv.nthreads_var;
-  pthread_barrier_init(&miniomp_parallel_barrier, NULL, miniomp_icv.nthreads_var+1);
-  miniomp_barrier_count = miniomp_icv.nthreads_var+1;
+  miniomp_barrier_init(&miniomp_barrier,miniomp_icv.nthreads_var);
+  miniomp_barrier_init(&miniomp_parallel_barrier,miniomp_icv.nthreads_var);
+  //pthread_barrier_init(&miniomp_barrier, NULL, miniomp_icv.nthreads_var);
+  //miniomp_barrier_count = miniomp_icv.nthreads_var;
+  //pthread_barrier_init(&miniomp_parallel_barrier, NULL, miniomp_icv.nthreads_var+1);
+  //miniomp_barrier_count = miniomp_icv.nthreads_var+1;
 
   // Initialize OpenMP workdescriptors for single 
   miniomp_single.value = 0;
@@ -125,6 +126,7 @@ printf("Joining all threads...\n");
   for(int t = 0; t < miniomp_icv.nthreads_var; ++t)
   {
     pthread_join(miniomp_threads[t],NULL);
+    //printf("Joined thread %d\n", t);
   }
 printf("Joined threads. Destroying mutexes and condition variables...\n");
 
@@ -143,10 +145,10 @@ printf("Freeing thread pool...\n");
   // free other data structures allocated during library initialization
   pthread_mutex_destroy(&miniomp_default_lock);
   pthread_mutex_destroy(&miniomp_named_lock);
-  //miniomp_barrier_destroy(&miniomp_barrier);
-  //miniomp_barrier_destroy(&miniomp_parallel_barrier);
-  pthread_barrier_destroy(&miniomp_barrier);
-  pthread_barrier_destroy(&miniomp_parallel_barrier);
+  miniomp_barrier_destroy(&miniomp_barrier);
+  miniomp_barrier_destroy(&miniomp_parallel_barrier);
+  //pthread_barrier_destroy(&miniomp_barrier);
+  //pthread_barrier_destroy(&miniomp_parallel_barrier);
 
   if(named_criticals.first)
   {
