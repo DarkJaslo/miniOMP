@@ -23,6 +23,21 @@ typedef struct
     miniomp_barrier_data* data;
     pthread_mutex_t mutex;
     int             threads;
+    int             arrived;
+} miniomp_barrier_t2;
+
+typedef struct
+{
+    union
+    {
+        struct
+        {
+            unsigned int sequence;
+            unsigned int count;
+        };
+        unsigned long long reset;
+    };
+    unsigned int nthreads;
 } miniomp_barrier_t;
 
 typedef struct{
@@ -53,7 +68,7 @@ void miniomp_barrier_destroy(miniomp_barrier_t* barrier);
 void miniomp_barrier_wait(miniomp_barrier_t* barrier);
 
 // While waiting, checks task pool and executes tasks
-void miniomp_barrier_wait_task(miniomp_barrier_t* barrier/*, miniomp_taskqueue_t* queue*/);
+void miniomp_barrier_wait_task(miniomp_barrier_t* barrier);
 
 extern miniomp_linked_list_t named_criticals;
 

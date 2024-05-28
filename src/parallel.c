@@ -24,19 +24,13 @@ GOMP_parallel (void (*fn) (void *), void *data, unsigned num_threads, unsigned i
   }
 
   //Recreate barriers if numbers don't match
-  if(num_threads != miniomp_barrier.threads)
+  if(num_threads != miniomp_barrier.nthreads)
   {
     miniomp_barrier_set(&miniomp_barrier,num_threads);
-    //pthread_barrier_destroy(&miniomp_barrier);
-    //pthread_barrier_init(&miniomp_barrier, NULL, num_threads);
-    //miniomp_barrier_count = num_threads;
   }
-  if(num_threads+1 != miniomp_parallel_barrier.threads)
+  if(num_threads+1 != miniomp_parallel_barrier.nthreads)
   {
     miniomp_barrier_set(&miniomp_parallel_barrier, num_threads+1);
-    //pthread_barrier_destroy(&miniomp_parallel_barrier);
-    //pthread_barrier_init(&miniomp_parallel_barrier, NULL, num_threads+1);
-    //miniomp_parallel_barrier_count = num_threads+1;
   }
   
   //Give work
