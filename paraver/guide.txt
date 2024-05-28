@@ -11,3 +11,7 @@ Slow barrier version
 tsynch2-*-barrier
 
 Slow barrier version, reduced x100 the N (so N = 1000) because traces were too big
+
+tsynch2-omp-barrier-fast
+
+The same thing with the new fast barrier (28/05/2024)
