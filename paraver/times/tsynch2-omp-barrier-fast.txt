@@ -1,0 +1,18 @@
+make: 'tsynch2-omp' is up to date.
+
+N = 100000
+
+
+mini-omp is being initialized
+Setting nthreads_var ICV to 20
+Execution time with 20 threads:
+  - named critical: 0.595447
+  - unnamed critical: 0.343990
+  - barrier: 0.708961
+Check value=2200004000000.000000
+Telling all threads to stop...
+Joining all threads...
+Joined threads. Destroying mutexes and condition variables...
+Freeing thread pool...
+Freeing named criticals...
+mini-omp is finalized
