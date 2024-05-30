@@ -20,6 +20,7 @@ extern miniomp_taskqueue_t miniomp_taskqueue;
 
 // funtions to implement basic management operations on taskqueue
 void TQinit(miniomp_taskqueue_t *task_queue);
+void TQdestroy(miniomp_taskqueue_t *task_queue);
 bool TQis_empty(miniomp_taskqueue_t *task_queue);
 bool TQis_full(miniomp_taskqueue_t *task_queue);
 void TQenqueue(miniomp_taskqueue_t *task_queue, miniomp_task_t *task_descriptor); 

@@ -70,9 +70,57 @@ void miniomp_barrier_wait(miniomp_barrier_t* barrier)
 */
 void miniomp_barrier_wait_task(miniomp_barrier_t* barrier)
 {
+  while(1)
+  {
+    unsigned int seq = __sync_fetch_and_add(&barrier->sequence,0);
+    unsigned int count = __sync_add_and_fetch(&barrier->count,1);
 
+    //Case 1: Wait for more threads
+    if(count < barrier->nthreads)
+    {
+      while((__sync_fetch_and_add(&barrier->sequence,0)) == seq) //Wait for the sequence to be increased
+      {
+        /* Look for tasks */
+        //exec_task();
+        sched_yield(); //GREATLY improves performance as it reduces locks on sequence
+      }
+      break;
+    }
+    //Case 2: We are the last thread of the batch
+    if(count == barrier->nthreads)
+    {
+      //In one step, increment the sequence and reset to zero the count
+      //this is possible because reset is in an union with count and sequence -> they share memory
+      mb();
+      barrier->reset = barrier->sequence+1;
+      mb();
+      break;
+    }
+
+    //Case 3: we arrived late for the current batch, wait for the next
+    while((__sync_fetch_and_add(&barrier->sequence,0)) == seq)
+    {
+      //exec_task();
+      sched_yield(); //GREATLY improves performance as it reduces locks on sequence
+    }
+  }
 }
 
+void exec_task()
+{
+  pthread_mutex_lock(&miniomp_taskqueue.lock_taskqueue);
+  if(!TQis_empty(&miniomp_taskqueue))
+  {
+    // Grab a task
+    miniomp_task_t* task = TQdequeue(&miniomp_taskqueue);
+    pthread_mutex_unlock(&miniomp_taskqueue);
+    task->fn(task->data);
+  }
+  else
+  {
+    pthread_mutex_unlock(&miniomp_taskqueue);
+  }
+}
 
 void miniomp_linked_list_destroy(miniomp_linked_list_node_t* first)
 {

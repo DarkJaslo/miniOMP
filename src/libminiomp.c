@@ -105,6 +105,7 @@ init_miniomp(void) {
   miniomp_single.value = 0;
 
   // Initialize OpenMP task queue for task and taskloop
+  TQinit(&miniomp_taskqueue);
 }
 
 void
@@ -155,6 +156,8 @@ printf("Freeing thread pool...\n");
     printf("Freeing named criticals...\n");
     miniomp_linked_list_destroy(named_criticals.first);
   }
+
+  TQdestroy(&miniomp_taskqueue);
 
 
 printf ("mini-omp is finalized\n");
