@@ -45,11 +45,11 @@ void * thread_func(void* args)
     runtime->done = 1;
     pthread_mutex_unlock(&runtime->mutex);
 
-    miniomp_barrier_wait(&miniomp_parallel_barrier);
-    //pthread_barrier_wait(&miniomp_parallel_barrier);
+    miniomp_barrier_wait_task(&miniomp_parallel_barrier, true);
+    //miniomp_barrier_wait(&miniomp_parallel_barrier);
   }
 
-  //printf("Thread %d is returning\n", runtime->id);
+  printf("Thread %d is returning\n", runtime->id);
   return (NULL);
 }
 

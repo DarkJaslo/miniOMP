@@ -43,7 +43,7 @@ void miniomp_barrier_wait(miniomp_barrier_t* barrier)
     if(count == barrier->nthreads)
     {
       //In one step, increment the sequence and reset to zero the count
-      //this is possible because reset is in an union with count and sequence -> they share memory
+      //this is possible because reset is in a union with count and sequence -> they share memory
       mb();
       barrier->reset = barrier->sequence+1;
       mb();
@@ -58,17 +58,7 @@ void miniomp_barrier_wait(miniomp_barrier_t* barrier)
   }
 }
 
-// TODO: make it work
-/*
-  Idea: after all threads have passed the first phase, keep looking for tasks while:
-
-  1. There are tasks
-  2. There are threads which execute tasks
-    - Ensures that tasks that create tasks are executed
-
-  Then, proceed with the deallocation phase
-*/
-void miniomp_barrier_wait_task(miniomp_barrier_t* barrier)
+void miniomp_barrier_wait_task(miniomp_barrier_t* barrier, bool worker)
 {
   while(1)
   {
@@ -81,7 +71,8 @@ void miniomp_barrier_wait_task(miniomp_barrier_t* barrier)
       while((__sync_fetch_and_add(&barrier->sequence,0)) == seq) //Wait for the sequence to be increased
       {
         /* Look for tasks */
-        //exec_task();
+        if(worker)
+          exec_task();
         sched_yield(); //GREATLY improves performance as it reduces locks on sequence
       }
       break;
@@ -104,21 +95,14 @@ void miniomp_barrier_wait_task(miniomp_barrier_t* barrier)
       sched_yield(); //GREATLY improves performance as it reduces locks on sequence
     }
   }
-}
 
-void exec_task()
-{
-  pthread_mutex_lock(&miniomp_taskqueue.lock_taskqueue);
-  if(!TQis_empty(&miniomp_taskqueue))
+  // While there are active tasks
+  while(!TQis_empty(&miniomp_taskqueue) || TQin_execution(&miniomp_taskqueue) > 0)
   {
-    // Grab a task
-    miniomp_task_t* task = TQdequeue(&miniomp_taskqueue);
-    pthread_mutex_unlock(&miniomp_taskqueue);
-    task->fn(task->data);
-  }
-  else
-  {
-    pthread_mutex_unlock(&miniomp_taskqueue);
+    if(worker)
+      exec_task();
+    else
+      sched_yield();
   }
 }
 
@@ -184,15 +168,10 @@ GOMP_critical_name_end (void **pptr)
   pthread_mutex_unlock(&critical->mutex);
 }
 
-//pthread_barrier_t miniomp_barrier;
 miniomp_barrier_t miniomp_barrier;
-//int               miniomp_barrier_count;
-//pthread_barrier_t miniomp_parallel_barrier;
 miniomp_barrier_t miniomp_parallel_barrier;
-//int               miniomp_parallel_barrier_count;
 
 void 
 GOMP_barrier() {
   miniomp_barrier_wait(&miniomp_barrier);
-  //pthread_barrier_wait(&miniomp_barrier);
 }

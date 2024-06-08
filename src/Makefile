@@ -1,6 +1,6 @@
 CC = gcc
 
-CFLAGS   = -Wall -O -std=c99 -march=native -I. -D_GNU_SOURCE
+CFLAGS   = -Wall -O -g -std=c99 -march=native -I. -D_GNU_SOURCE
 CFLAGS_SO = -fPIC --shared
 
 MINIOMP = ../

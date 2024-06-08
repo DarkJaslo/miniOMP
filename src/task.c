@@ -7,6 +7,7 @@ void TQinit(miniomp_taskqueue_t *task_queue) {
     task_queue->num_elems = 0;
     task_queue->head = 0;
     task_queue->tail = 0;
+    task_queue->in_execution = 0;
     pthread_mutex_init (&task_queue->lock_taskqueue, NULL);
     return;
 }
@@ -18,14 +19,17 @@ void TQdestroy(miniomp_taskqueue_t *task_queue)
 
 // Checks if the task queue is empty
 bool TQis_empty(miniomp_taskqueue_t *task_queue) {
-    bool result = (task_queue->num_elems==0);
-    return result;
+
+    return __sync_fetch_and_add(&task_queue->num_elems,0) == 0;
+    //bool result = (task_queue->num_elems==0);
+    //return result;
 }
 
 // Checks if the task queue is full
 bool TQis_full(miniomp_taskqueue_t *task_queue) {
-    bool result = (task_queue->num_elems==MAXELEMENTS_TQ);
-    return result;
+    return __sync_fetch_and_add(&task_queue->num_elems,0) == MAXELEMENTS_TQ;
+    //bool result = (task_queue->num_elems==MAXELEMENTS_TQ);
+    //return result;
 }
 
 // Enqueues the task descriptor at the tail of the task queue
@@ -34,7 +38,7 @@ void TQenqueue(miniomp_taskqueue_t *task_queue, miniomp_task_t *task_descriptor)
     task_queue->tail++;
     if (task_queue->tail == MAXELEMENTS_TQ)
         task_queue->tail = 0;
-    task_queue->num_elems++;
+    __sync_fetch_and_add(&task_queue->num_elems,1);
 }
 
 // Dequeue the task descriptor at the head of the task queue
@@ -43,8 +47,13 @@ miniomp_task_t * TQdequeue(miniomp_taskqueue_t *task_queue) {
     task_queue->head++;
     if (task_queue->head == MAXELEMENTS_TQ)
         task_queue->head = 0;
-    task_queue->num_elems--;
+    __sync_fetch_and_add(&task_queue->num_elems,-1);
     return(out);
+}
+
+int TQin_execution(miniomp_taskqueue_t* task_queue)
+{
+    return __sync_fetch_and_add(&task_queue->in_execution,0);
 }
 
 #define GOMP_TASK_FLAG_UNTIED           (1 << 0)
@@ -73,7 +82,8 @@ GOMP_task (void (*fn) (void *), void *data, void (*cpyfn) (void *, void *),
            long arg_size, long arg_align, bool if_clause, unsigned flags,
            void **depend, int priority)
 {
-    //printf("TBI: a task has been encountered");
+    //printf("Thread %d encountered a task\n",omp_get_thread_num());
+
     //if (!if_clause) printf(" with if clause set to 0, I am executing it immediately!\n");
     //else printf(", I am executing it immediately until you implement me!\n");
 
@@ -93,24 +103,53 @@ GOMP_task (void (*fn) (void *), void *data, void (*cpyfn) (void *, void *),
 
     if(!if_clause) //if clause set to 0, execute immediately
     {
-        // Function invocation should be replaced with the appropriate task enqueueing if appropriate
         fn (arg);
-        free(arg);
-        return;
+        //free(arg);
     }
-    //Else
-    miniomp_task_t task;
-    task.data = data;
-    task.fn = fn;
-
-    pthread_mutex_lock(&miniomp_taskqueue.lock_taskqueue);
-    while(TQis_full(&miniomp_taskqueue))
+    else
     {
-        pthread_mutex_unlock(&miniomp_taskqueue.lock_taskqueue);
-        sched_yield();
-        pthread_mutex_lock(&miniomp_taskqueue.lock_taskqueue);
-    }
+        miniomp_task_t* task = (miniomp_task_t*)malloc(sizeof(miniomp_task_t));
+        task->data = (void*)arg;
+        task->fn = fn;
 
-    TQenqueue(&miniomp_taskqueue,&task);
-    pthread_mutex_unlock(&miniomp_taskqueue.lock_taskqueue);    
+        pthread_mutex_lock(&miniomp_taskqueue.lock_taskqueue);
+        if(TQis_full(&miniomp_taskqueue))
+        {
+            pthread_mutex_unlock(&miniomp_taskqueue.lock_taskqueue); 
+            __sync_fetch_and_add(&miniomp_taskqueue.in_execution,1); 
+            fn(arg);
+            __sync_fetch_and_add(&miniomp_taskqueue.in_execution,-1);
+        }
+        else
+        {
+            TQenqueue(&miniomp_taskqueue,task);
+            pthread_mutex_unlock(&miniomp_taskqueue.lock_taskqueue); 
+        } 
+    }  
+    //printf("Task by thread %d is done enqueuing!\n", omp_get_thread_num());
+}
+
+void exec_task()
+{
+  pthread_mutex_lock(&miniomp_taskqueue.lock_taskqueue);
+
+  if(!TQis_empty(&miniomp_taskqueue))
+  {
+    // Grab a task
+    //printf("Thread %d executing task!\n",omp_get_thread_num());
+    miniomp_task_t* task = TQdequeue(&miniomp_taskqueue);
+    //printf("%d 1 moments before disaster\n", omp_get_thread_num());
+    __sync_fetch_and_add(&miniomp_taskqueue.in_execution,1);
+    //printf("%d 2 moments before disaster\n", omp_get_thread_num());
+    pthread_mutex_unlock(&miniomp_taskqueue.lock_taskqueue);
+    //printf("%d 3 moments before disaster\n", omp_get_thread_num());
+    task->fn(task->data);
+    //free(task->data);
+    //printf("%d 4 moments before disaster\n", omp_get_thread_num());
+    __sync_fetch_and_add(&miniomp_taskqueue.in_execution,-1);
+  }
+  else
+  {
+    pthread_mutex_unlock(&miniomp_taskqueue.lock_taskqueue);
+  }
 }

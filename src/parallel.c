@@ -46,8 +46,7 @@ GOMP_parallel (void (*fn) (void *), void *data, unsigned num_threads, unsigned i
     pthread_mutex_unlock(&runtime->mutex);
   }
 
-  miniomp_barrier_wait(&miniomp_parallel_barrier);
-  //pthread_barrier_wait(&miniomp_parallel_barrier);
+  miniomp_barrier_wait_task(&miniomp_parallel_barrier, false);
   //miniomp_barrier_wait(&miniomp_parallel_barrier);
 
   // At least one 'single' construct happened. Some threads may have outdated

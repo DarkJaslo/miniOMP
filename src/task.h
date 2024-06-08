@@ -5,7 +5,7 @@ typedef struct {
     // complete with additional fields if needed
 } miniomp_task_t;
 
-#define MAXELEMENTS_TQ 128
+#define MAXELEMENTS_TQ 2048
 
 typedef struct {
     miniomp_task_t * queue[MAXELEMENTS_TQ];
@@ -13,6 +13,7 @@ typedef struct {
     int tail;
     int num_elems;
     pthread_mutex_t lock_taskqueue;
+    volatile int in_execution;
     // complete with additional fields if needed or replace previous ones
 } miniomp_taskqueue_t;
 
@@ -25,11 +26,14 @@ bool TQis_empty(miniomp_taskqueue_t *task_queue);
 bool TQis_full(miniomp_taskqueue_t *task_queue);
 void TQenqueue(miniomp_taskqueue_t *task_queue, miniomp_task_t *task_descriptor); 
 miniomp_task_t * TQdequeue(miniomp_taskqueue_t *task_queue);
+int  TQin_execution(miniomp_taskqueue_t* task_queue);
 
 // Functions implemented in task* modules
 void GOMP_task (void (*fn) (void *), void *data, void (*cpyfn) (void *, void *),
            long arg_size, long arg_align, bool if_clause, unsigned flags,
            void **depend, int priority);
+void exec_task();
+
 void GOMP_taskloop (void (*fn) (void *), void *data, void (*cpyfn) (void *, void *),
                long arg_size, long arg_align, unsigned flags,
                unsigned long num_tasks, int priority,
