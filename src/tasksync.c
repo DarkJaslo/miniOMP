@@ -8,8 +8,15 @@ int miniomp_intaskgroup;
 void 
 GOMP_taskwait (void)
 {
-    if (!miniomp_intaskgroup) // just printed if function is not invoked from fake taskgroup implementation
-        printf("TBI: Entered in taskwait, there should be no pending tasks, so I proceed\n");
+    //if (!miniomp_intaskgroup) // just printed if function is not invoked from fake taskgroup implementation
+    //    printf("TBI: Entered in taskwait, there should be no pending tasks, so I proceed\n");
+
+    miniomp_task_references* ref = (miniomp_task_references*)pthread_getspecific(miniomp_task_references_key);
+
+    while(__sync_fetch_and_add(&ref->running, 0L) > 0)
+    {
+        try_exec_task();
+    }
 }
 
 

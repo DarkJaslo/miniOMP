@@ -72,7 +72,7 @@ void miniomp_barrier_wait_task(miniomp_barrier_t* barrier, bool worker)
       {
         /* Look for tasks */
         if(worker)
-          exec_task();
+          try_exec_task();
         sched_yield(); //GREATLY improves performance as it reduces locks on sequence
       }
       break;
@@ -91,7 +91,7 @@ void miniomp_barrier_wait_task(miniomp_barrier_t* barrier, bool worker)
     //Case 3: we arrived late for the current batch, wait for the next
     while((__sync_fetch_and_add(&barrier->sequence,0)) == seq)
     {
-      //exec_task();
+      //try_exec_task();
       sched_yield(); //GREATLY improves performance as it reduces locks on sequence
     }
   }
@@ -100,19 +100,10 @@ void miniomp_barrier_wait_task(miniomp_barrier_t* barrier, bool worker)
   while(!TQis_empty(&miniomp_taskqueue) || TQin_execution(&miniomp_taskqueue) > 0)
   {
     if(worker)
-      exec_task();
+      try_exec_task();
     else
       sched_yield();
   }
-}
-
-void miniomp_linked_list_destroy(miniomp_linked_list_node_t* first)
-{
-  if(!first) return;
-  miniomp_linked_list_node_t* next = first->next;
-  first->deallocator(first->data);
-  free(first);
-  miniomp_linked_list_destroy(next);
 }
 
 void miniomp_critical_node_destroy(void* data)
@@ -151,11 +142,8 @@ GOMP_critical_name_start (void **pptr) {
     node->next = NULL;
     node->data = (void*)critical;
     node->deallocator = miniomp_critical_node_destroy;
-    if(!named_criticals.first)
-    {
-      named_criticals.first = node;
-      named_criticals.last = node;
-    }
+
+    miniomp_linked_list_add(&named_criticals,node);
   }
   pthread_mutex_lock(&critical->mutex);
   pthread_mutex_unlock(&miniomp_named_lock);

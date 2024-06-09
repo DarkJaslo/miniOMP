@@ -10,12 +10,15 @@ miniomp_thread_runtime * miniomp_threads_sync;
 // Declaration of array for storing pthread identifiers from pthread_create function
 pthread_t *miniomp_threads;
 
+miniomp_task_references miniomp_base_task_references;
+
 // Idle function for a thread
 void * thread_func(void* args)
 {
   miniomp_thread_runtime* runtime = (miniomp_thread_runtime*)args;
 
   pthread_setspecific(miniomp_specifickey,(void*)(long)runtime->id);
+  pthread_setspecific(miniomp_task_references_key, (void*)&miniomp_base_task_references);
 
   while(!runtime->stop)
   {
@@ -61,6 +64,7 @@ init_miniomp(void) {
 
   // Initialize Pthread thread-specific data, now just used to store the OpenMP thread identifier
   pthread_key_create(&miniomp_specifickey, NULL);
+  pthread_key_create(&miniomp_task_references_key, NULL);
   pthread_setspecific(miniomp_specifickey, (void *) 0); // implicit initial pthread with id=0
 
   // Initialize pthread and parallel data structures 
@@ -96,22 +100,26 @@ init_miniomp(void) {
 
   miniomp_barrier_init(&miniomp_barrier,miniomp_icv.nthreads_var);
   miniomp_barrier_init(&miniomp_parallel_barrier,miniomp_icv.nthreads_var);
-  //pthread_barrier_init(&miniomp_barrier, NULL, miniomp_icv.nthreads_var);
-  //miniomp_barrier_count = miniomp_icv.nthreads_var;
-  //pthread_barrier_init(&miniomp_parallel_barrier, NULL, miniomp_icv.nthreads_var+1);
-  //miniomp_barrier_count = miniomp_icv.nthreads_var+1;
+
+  miniomp_linked_list_init(&named_criticals);
 
   // Initialize OpenMP workdescriptors for single 
   miniomp_single.value = 0;
 
   // Initialize OpenMP task queue for task and taskloop
   TQinit(&miniomp_taskqueue);
+
+  miniomp_base_task_references.parent = NULL;
+  miniomp_base_task_references.running = 0;
+  pthread_setspecific(miniomp_task_references_key,(void*)&miniomp_base_task_references);
+
 }
 
 void
 fini_miniomp(void) {
   // delete Pthread thread-specific data
   pthread_key_delete(miniomp_specifickey);
+  pthread_key_delete(miniomp_task_references_key);
 
 printf("Telling all threads to stop...\n");
   for(int i = 0; i < miniomp_icv.nthreads_var; ++i)
@@ -151,11 +159,9 @@ printf("Freeing thread pool...\n");
   //pthread_barrier_destroy(&miniomp_barrier);
   //pthread_barrier_destroy(&miniomp_parallel_barrier);
 
-  if(named_criticals.first)
-  {
-    printf("Freeing named criticals...\n");
-    miniomp_linked_list_destroy(named_criticals.first);
-  }
+  printf("Freeing named criticals...\n");
+  miniomp_linked_list_destroy(&named_criticals);
+  miniomp_linked_list_destroy(&miniomp_task_allocations);
 
   TQdestroy(&miniomp_taskqueue);
 

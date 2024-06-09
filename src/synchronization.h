@@ -4,27 +4,12 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <errno.h>
+#include "linked_list.h"
 
 // Default lock for unnamed critical sections
 extern pthread_mutex_t miniomp_default_lock;
 // Lock for named critical sections
 extern pthread_mutex_t miniomp_named_lock;
-
-typedef struct
-{
-    pthread_mutex_t mutex;
-    pthread_cond_t  cond;
-    int             waiting;
-    int             done;
-} miniomp_barrier_data;
-
-typedef struct 
-{
-    miniomp_barrier_data* data;
-    pthread_mutex_t mutex;
-    int             threads;
-    int             arrived;
-} miniomp_barrier_t2;
 
 typedef struct
 {
@@ -43,19 +28,6 @@ typedef struct
 typedef struct{
     pthread_mutex_t mutex;
 } miniomp_named_critical_t;
-
-typedef struct{
-    void* next;
-    void* data;
-    void (*deallocator) (void*);
-} miniomp_linked_list_node_t;
-
-typedef struct{
-    miniomp_linked_list_node_t* first;
-    miniomp_linked_list_node_t* last;
-} miniomp_linked_list_t;
-
-void miniomp_linked_list_destroy(miniomp_linked_list_node_t* first);
 
 void miniomp_critical_node_destroy(void* data);
 

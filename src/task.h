@@ -1,8 +1,16 @@
+#include "linked_list.h"
+
+typedef struct {
+    void* parent;
+    unsigned long running;
+} miniomp_task_references;
+
 /* This structure describes a "task" to be run by a thread.  */
 typedef struct {
     void (*fn)(void *);
     void (*data);
-    // complete with additional fields if needed
+    unsigned long running;
+    miniomp_task_references* ref;
 } miniomp_task_t;
 
 #define MAXELEMENTS_TQ 2048
@@ -19,6 +27,12 @@ typedef struct {
 
 extern miniomp_taskqueue_t miniomp_taskqueue;
 
+extern pthread_key_t miniomp_task_references_key;
+
+extern miniomp_linked_list_t miniomp_task_allocations;
+
+void store_ref_in_list(miniomp_task_references* ref, miniomp_linked_list_t* list);
+
 // funtions to implement basic management operations on taskqueue
 void TQinit(miniomp_taskqueue_t *task_queue);
 void TQdestroy(miniomp_taskqueue_t *task_queue);
@@ -32,14 +46,14 @@ int  TQin_execution(miniomp_taskqueue_t* task_queue);
 void GOMP_task (void (*fn) (void *), void *data, void (*cpyfn) (void *, void *),
            long arg_size, long arg_align, bool if_clause, unsigned flags,
            void **depend, int priority);
-void exec_task();
+void try_exec_task();
+void exec_task(miniomp_task_t* task);
+void exec_task_now(void (*fn)(void *), void (*data));
 
 void GOMP_taskloop (void (*fn) (void *), void *data, void (*cpyfn) (void *, void *),
                long arg_size, long arg_align, unsigned flags,
                unsigned long num_tasks, int priority,
                long start, long end, long step);
-
-void GOMP_taskwait (void);
 extern int miniomp_intaskgroup; 
 void GOMP_taskgroup_start (void);
 void GOMP_taskgroup_end (void);

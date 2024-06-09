@@ -10,6 +10,8 @@ pthread_key_t miniomp_specifickey;
 // Global variable of per-thread data
 extern miniomp_thread_runtime* miniomp_threads_sync;
 
+extern miniomp_linked_list_t miniomp_task_allocations;
+
 void
 GOMP_parallel (void (*fn) (void *), void *data, unsigned num_threads, unsigned int flags) {
   if(!num_threads) num_threads = omp_get_num_threads();
@@ -59,6 +61,10 @@ GOMP_parallel (void (*fn) (void *), void *data, unsigned num_threads, unsigned i
       runtime->single_count = miniomp_single.value;
     }
   }
+
+  // Destroy tasks and task references that have been allocated during this parallel region
+  miniomp_linked_list_destroy(&miniomp_task_allocations);
+  miniomp_linked_list_init(&miniomp_task_allocations);
 
 //printf("Ending parallel region\n");
 }
