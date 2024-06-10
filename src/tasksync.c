@@ -17,21 +17,30 @@ GOMP_taskwait (void)
 void 
 GOMP_taskgroup_start (void)
 {
-    //A partir d'ara, les tasques que es creen tenen aquesta referencia com pare de taskgroup
-    miniomp_task_references* ref = (miniomp_task_references*)pthread_getspecific(miniomp_task_references_key);
+    miniomp_task_references* ref = (miniomp_task_references*)pthread_getspecific(miniomp_taskgroup_references_key);
 
-    //El que se m'acut per fer una assignació atòmica
-    __sync_bool_compare_and_swap(&ref->parent_taskgroup_running, ref->parent_taskgroup_running,&ref->taskgroup_running );
+    miniomp_task_references* new_ref = (miniomp_task_references*)malloc(sizeof(miniomp_task_references));
+    new_ref->running = 0;
+    new_ref->parent = ref;
+
+    pthread_setspecific(miniomp_taskgroup_references_key, (void*)new_ref);
 }
 
 void 
 GOMP_taskgroup_end (void)
 {
-    //Esperem a totes les tasques del grup, igual que a taskwait, només que es mira un altre comptador.
-    miniomp_task_references* ref = (miniomp_task_references*)pthread_getspecific(miniomp_task_references_key);
+    // Same as taskwait, we just check a different counter
+    miniomp_task_references* ref = (miniomp_task_references*)pthread_getspecific(miniomp_taskgroup_references_key);
 
-    while(__sync_fetch_and_add(&ref->taskgroup_running, 0L) > 0)
+    __sync_fetch_and_add(&ref->running, 0UL);
+
+    while(__sync_fetch_and_add(&ref->running, 0UL) > 0)
     {
         try_exec_task();
     }
+
+    // In this case the taskgroup reference can be freed safely
+    miniomp_task_references* old_ref = ref->parent;
+    pthread_setspecific(miniomp_taskgroup_references_key, (void*)old_ref);
+    free(ref);
 }

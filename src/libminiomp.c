@@ -10,7 +10,8 @@ miniomp_thread_runtime * miniomp_threads_sync;
 // Declaration of array for storing pthread identifiers from pthread_create function
 pthread_t *miniomp_threads;
 
-miniomp_task_references miniomp_base_task_references;
+miniomp_task_references miniomp_base_task_references; //used in taskwait / nested tasks
+miniomp_task_references miniomp_base_taskgroup_references; //used in taskgroup
 
 // Idle function for a thread
 void * thread_func(void* args)
@@ -19,6 +20,7 @@ void * thread_func(void* args)
 
   pthread_setspecific(miniomp_specifickey,(void*)(long)runtime->id);
   pthread_setspecific(miniomp_task_references_key, (void*)&miniomp_base_task_references);
+  pthread_setspecific(miniomp_taskgroup_references_key,(void*)&miniomp_base_taskgroup_references);
 
   while(!runtime->stop)
   {
@@ -27,15 +29,12 @@ void * thread_func(void* args)
     // If done is 0, this thread is late to the cond_wait and can continue executing immediately.
     while(runtime->done)
     {
-    //printf("Pre-wait %d\n", runtime->id);
       pthread_cond_wait(&runtime->do_work,&runtime->mutex);
-    //printf("Post-wait %d\n", runtime->id);
     }
     pthread_mutex_unlock(&runtime->mutex);
 
     if(runtime->stop)
     {
-      //printf("I was told to stop %d\n", runtime->id);
       return (NULL);
     }
 
@@ -49,7 +48,6 @@ void * thread_func(void* args)
     pthread_mutex_unlock(&runtime->mutex);
 
     miniomp_barrier_wait_task(&miniomp_parallel_barrier, true);
-    //miniomp_barrier_wait(&miniomp_parallel_barrier);
   }
 
   printf("Thread %d is returning\n", runtime->id);
@@ -65,6 +63,7 @@ init_miniomp(void) {
   // Initialize Pthread thread-specific data, now just used to store the OpenMP thread identifier
   pthread_key_create(&miniomp_specifickey, NULL);
   pthread_key_create(&miniomp_task_references_key, NULL);
+  pthread_key_create(&miniomp_taskgroup_references_key, NULL);
   pthread_setspecific(miniomp_specifickey, (void *) 0); // implicit initial pthread with id=0
 
   // Initialize pthread and parallel data structures 
@@ -111,9 +110,10 @@ init_miniomp(void) {
 
   miniomp_base_task_references.running = 0;
   miniomp_base_task_references.parent = NULL;
-  miniomp_base_task_references.taskgroup_running = 0;
-  miniomp_base_task_references.parent_taskgroup_running = NULL;
+  miniomp_base_taskgroup_references.running = 0;
+  miniomp_base_taskgroup_references.parent = NULL;
   pthread_setspecific(miniomp_task_references_key,(void*)&miniomp_base_task_references);
+  pthread_setspecific(miniomp_taskgroup_references_key,(void*)&miniomp_base_taskgroup_references);
 }
 
 void
@@ -121,6 +121,7 @@ fini_miniomp(void) {
   // delete Pthread thread-specific data
   pthread_key_delete(miniomp_specifickey);
   pthread_key_delete(miniomp_task_references_key);
+  pthread_key_delete(miniomp_taskgroup_references_key);
 
 printf("Telling all threads to stop...\n");
   for(int i = 0; i < miniomp_icv.nthreads_var; ++i)
@@ -157,15 +158,12 @@ printf("Freeing thread pool...\n");
   pthread_mutex_destroy(&miniomp_named_lock);
   miniomp_barrier_destroy(&miniomp_barrier);
   miniomp_barrier_destroy(&miniomp_parallel_barrier);
-  //pthread_barrier_destroy(&miniomp_barrier);
-  //pthread_barrier_destroy(&miniomp_parallel_barrier);
 
   printf("Freeing named criticals...\n");
   miniomp_linked_list_destroy(&named_criticals);
   miniomp_linked_list_destroy(&miniomp_task_allocations);
 
   TQdestroy(&miniomp_taskqueue);
-
 
 printf ("mini-omp is finalized\n");
 }

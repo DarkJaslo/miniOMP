@@ -3,6 +3,7 @@
 miniomp_taskqueue_t miniomp_taskqueue;
 miniomp_linked_list_t miniomp_task_allocations;
 pthread_key_t miniomp_task_references_key;
+pthread_key_t miniomp_taskgroup_references_key;
 
 // Initializes the task queue
 void TQinit(miniomp_taskqueue_t *task_queue) {
@@ -84,11 +85,6 @@ GOMP_task (void (*fn) (void *), void *data, void (*cpyfn) (void *, void *),
            long arg_size, long arg_align, bool if_clause, unsigned flags,
            void **depend, int priority)
 {
-    //printf("Thread %d encountered a task\n",omp_get_thread_num());
-
-    //if (!if_clause) printf(" with if clause set to 0, I am executing it immediately!\n");
-    //else printf(", I am executing it immediately until you implement me!\n");
-
     // This part of the code appropriately copies data to be passed to task function,
     // either using a compiler cpyfn function or just memcopy otherwise; no need to
     // fully understand it for the purposes of this assignment
@@ -121,32 +117,29 @@ GOMP_task (void (*fn) (void *), void *data, void (*cpyfn) (void *, void *),
             miniomp_task_t* task = (miniomp_task_t*)malloc(sizeof(miniomp_task_t));
             task->data = (void*)arg;
             task->fn = fn;
+            task->taskgroup = NULL;
 
             //Create task reference and increase the counter of my reference ("I have a new child task")
             miniomp_task_references* ref = (miniomp_task_references*)pthread_getspecific(miniomp_task_references_key);
             miniomp_task_references* new_ref = (miniomp_task_references*)malloc(sizeof(miniomp_task_references));
             new_ref->parent = ref;
             new_ref->running = 0;
-            new_ref->taskgroup_running = 0;
-            if(ref->parent_taskgroup_running)
-            {
-                new_ref->parent_taskgroup_running = ref->parent_taskgroup_running;
-            }
-            else 
-            {
-                new_ref->parent_taskgroup_running = NULL;
-            }
-
             task->ref = new_ref;
             store_ref_in_list(new_ref,&miniomp_task_allocations); //to free later
             __sync_fetch_and_add(&ref->running,1UL);
-            if(new_ref->parent_taskgroup_running)
-                __sync_fetch_and_add(new_ref->parent_taskgroup_running,1UL);
+
+            //Get taskgroup reference
+            miniomp_task_references* tg_ref = (miniomp_task_references*)pthread_getspecific(miniomp_taskgroup_references_key);
+
+            if(tg_ref->parent) //Implies we are in a taskgroup (if not, it is the base tg ref and has no parent)
+            {
+                task->taskgroup = tg_ref;
+                __sync_add_and_fetch(&task->taskgroup->running,1UL);
+            }
             TQenqueue(&miniomp_taskqueue,task);
             pthread_mutex_unlock(&miniomp_taskqueue.lock_taskqueue); 
         } 
-    }  
-    //printf("Task by thread %d is done enqueuing!\n", omp_get_thread_num());
+    }
 }
 
 void try_exec_task()
@@ -156,8 +149,6 @@ void try_exec_task()
   if(!TQis_empty(&miniomp_taskqueue))
   {
     // Grab a task
-    //printf("Thread %d executing task!\n",omp_get_thread_num())
-
     miniomp_task_t* task = TQdequeue(&miniomp_taskqueue);
     pthread_mutex_unlock(&miniomp_taskqueue.lock_taskqueue);
 
@@ -171,22 +162,34 @@ void try_exec_task()
 
 void exec_task(miniomp_task_t* task)
 {
-    miniomp_task_references* ref = (miniomp_task_references* )pthread_getspecific(miniomp_task_references_key);
-    miniomp_task_references* new_ref = task->ref;
-
     // We are executing a new task
     __sync_fetch_and_add(&miniomp_taskqueue.in_execution,1);
 
+    // For taskwait and nested tasks
+    miniomp_task_references* ref = (miniomp_task_references* )pthread_getspecific(miniomp_task_references_key);
+    miniomp_task_references* new_ref = task->ref;
     pthread_setspecific(miniomp_task_references_key,(void*)new_ref);
-    task->fn(task->data);
-    pthread_setspecific(miniomp_task_references_key,(void*)ref);
 
-    // We are done with the execution
+    // For taskgroup
+    miniomp_task_references* tg_ref = (miniomp_task_references*)pthread_getspecific(miniomp_taskgroup_references_key);
+    pthread_setspecific(miniomp_taskgroup_references_key,(void*)task->taskgroup);
+
+    // Actually execute task
+    task->fn(task->data);
+
+    __sync_fetch_and_sub(&miniomp_taskqueue.in_execution,1);
+
+    // One level up on the task hierarchy
+    pthread_setspecific(miniomp_task_references_key,(void*)ref);
     miniomp_task_references* parent = (miniomp_task_references*)task->ref->parent;
     __sync_fetch_and_sub(&parent->running,1UL);
-    __sync_fetch_and_sub(&miniomp_taskqueue.in_execution,1);
-    if(new_ref->parent_taskgroup_running)
-        __sync_fetch_and_sub(task->ref->parent_taskgroup_running,1UL);
+
+    // Taskgroup stuff
+    if(task->taskgroup)
+    {
+        __sync_sub_and_fetch(&task->taskgroup->running,1UL);
+    }
+    pthread_setspecific(miniomp_taskgroup_references_key,(void*)tg_ref);
     
     // Save the task to free it later
     miniomp_linked_list_node_t * node = (miniomp_linked_list_node_t*)malloc(sizeof(miniomp_linked_list_node_t));
@@ -198,38 +201,7 @@ void exec_task(miniomp_task_t* task)
 
 void exec_task_now(void (*fn)(void *), void (*data))
 {
-    // We have to create the reference in this case
-    miniomp_task_references* ref = (miniomp_task_references*)pthread_getspecific(miniomp_task_references_key);
-    miniomp_task_references* new_ref = (miniomp_task_references*)malloc(sizeof(miniomp_task_references));
-    new_ref->parent = ref;
-    new_ref->running = 0;
-    new_ref->taskgroup_running = 0;
-    if(ref->parent_taskgroup_running)
-    {
-        new_ref->parent_taskgroup_running = ref->parent_taskgroup_running;
-    }
-    else 
-    {
-        new_ref->parent_taskgroup_running = NULL;
-    }
-    store_ref_in_list(new_ref,&miniomp_task_allocations); //to free later
-
-    // We are executing a new task
-    __sync_fetch_and_add(&miniomp_taskqueue.in_execution,1);
-
-    __sync_fetch_and_add(&ref->running,1UL);
-    if(new_ref->parent_taskgroup_running)
-        __sync_fetch_and_add(new_ref->parent_taskgroup_running,1UL);
-
-    pthread_setspecific(miniomp_task_references_key,(void*)new_ref);
     fn(data);
-    pthread_setspecific(miniomp_task_references_key,(void*)ref);
-
-    // We are done with the task
-    __sync_fetch_and_sub(&ref->running,1UL);
-    __sync_fetch_and_sub(&miniomp_taskqueue.in_execution,1);
-    if(new_ref->parent_taskgroup_running)
-        __sync_fetch_and_sub(new_ref->parent_taskgroup_running,1UL);
 }
 
 void store_ref_in_list(miniomp_task_references* ref, miniomp_linked_list_t* list)
