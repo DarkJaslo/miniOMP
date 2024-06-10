@@ -3,13 +3,14 @@
 typedef struct {
     void* parent;
     unsigned long running;
+    unsigned long taskgroup_running;
+    unsigned long* parent_taskgroup_running;
 } miniomp_task_references;
 
 /* This structure describes a "task" to be run by a thread.  */
 typedef struct {
     void (*fn)(void *);
     void (*data);
-    unsigned long running;
     miniomp_task_references* ref;
 } miniomp_task_t;
 
@@ -26,9 +27,7 @@ typedef struct {
 } miniomp_taskqueue_t;
 
 extern miniomp_taskqueue_t miniomp_taskqueue;
-
 extern pthread_key_t miniomp_task_references_key;
-
 extern miniomp_linked_list_t miniomp_task_allocations;
 
 void store_ref_in_list(miniomp_task_references* ref, miniomp_linked_list_t* list);

@@ -109,10 +109,11 @@ init_miniomp(void) {
   // Initialize OpenMP task queue for task and taskloop
   TQinit(&miniomp_taskqueue);
 
-  miniomp_base_task_references.parent = NULL;
   miniomp_base_task_references.running = 0;
+  miniomp_base_task_references.parent = NULL;
+  miniomp_base_task_references.taskgroup_running = 0;
+  miniomp_base_task_references.parent_taskgroup_running = NULL;
   pthread_setspecific(miniomp_task_references_key,(void*)&miniomp_base_task_references);
-
 }
 
 void
