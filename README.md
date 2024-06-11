@@ -9,4 +9,4 @@ This library implements the gcc GOMP functions specified in the code. In short:
 - Nested tasks and taskgroups, taskwait
 - No taskloop or task reductions of any kind
 
-It is of course not intended to be used, but a very useful learning project.
+It is of course not intended to be used, but it still is a very useful learning project.
