@@ -1,0 +1,4 @@
+gcc -Wall -g -O3 -std=gnu99 -march=native -I. -fopenmp sieveparallel.c -o sieveparallel-gomp -lm
+Sieving from 2 to 100000000 in blocks of 100000 ... (may take some time)
+./sieveparallel-gomp found 5761455 primes smaller than or equal to 100000000 in 0.118188 seconds using 1 threads
+0.118188
