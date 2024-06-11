@@ -24,15 +24,11 @@ void TQdestroy(miniomp_taskqueue_t *task_queue)
 bool TQis_empty(miniomp_taskqueue_t *task_queue) {
 
     return __sync_fetch_and_add(&task_queue->num_elems,0) == 0;
-    //bool result = (task_queue->num_elems==0);
-    //return result;
 }
 
 // Checks if the task queue is full
 bool TQis_full(miniomp_taskqueue_t *task_queue) {
     return __sync_fetch_and_add(&task_queue->num_elems,0) == MAXELEMENTS_TQ;
-    //bool result = (task_queue->num_elems==MAXELEMENTS_TQ);
-    //return result;
 }
 
 // Enqueues the task descriptor at the tail of the task queue
@@ -79,7 +75,6 @@ int TQin_execution(miniomp_taskqueue_t* task_queue)
 //      5. long arg_align: alignment of the data
 //      6. bool if_clause: the value of if_clause. true --> 1, false -->0; default is set to 1 by compiler
 //      7. unsigned flags: see #define list above
-
 void
 GOMP_task (void (*fn) (void *), void *data, void (*cpyfn) (void *, void *),
            long arg_size, long arg_align, bool if_clause, unsigned flags,
@@ -177,8 +172,6 @@ void exec_task(miniomp_task_t* task)
     // Actually execute task
     task->fn(task->data);
 
-    __sync_fetch_and_sub(&miniomp_taskqueue.in_execution,1);
-
     // One level up on the task hierarchy
     pthread_setspecific(miniomp_task_references_key,(void*)ref);
     miniomp_task_references* parent = (miniomp_task_references*)task->ref->parent;
@@ -197,6 +190,8 @@ void exec_task(miniomp_task_t* task)
     node->next = NULL;
     node->deallocator = NULL;
     miniomp_linked_list_add(&miniomp_task_allocations,node);
+
+    __sync_fetch_and_sub(&miniomp_taskqueue.in_execution,1);
 }
 
 void exec_task_now(void (*fn)(void *), void (*data))

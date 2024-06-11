@@ -13,7 +13,7 @@ pthread_t *miniomp_threads;
 miniomp_task_references miniomp_base_task_references; //used in taskwait / nested tasks
 miniomp_task_references miniomp_base_taskgroup_references; //used in taskgroup
 
-// Idle function for a thread
+// Base function for a thread
 void * thread_func(void* args)
 {
   miniomp_thread_runtime* runtime = (miniomp_thread_runtime*)args;
@@ -66,10 +66,6 @@ init_miniomp(void) {
   pthread_key_create(&miniomp_taskgroup_references_key, NULL);
   pthread_setspecific(miniomp_specifickey, (void *) 0); // implicit initial pthread with id=0
 
-  // Initialize pthread and parallel data structures 
-  named_criticals.first = NULL;
-  named_criticals.last = NULL;
-
   //Create thread pool
   miniomp_icv.parallel_threads = miniomp_icv.nthreads_var;
   miniomp_threads = (pthread_t*)malloc( miniomp_icv.nthreads_var*sizeof(pthread_t));
@@ -78,7 +74,6 @@ init_miniomp(void) {
   for(int i = 0; i < miniomp_icv.nthreads_var; ++i)
   {
     //Initialize control variables and mutex
-    //Set stop to false
     miniomp_thread_runtime* runtime = miniomp_threads_sync+i;
 
     runtime->stop = 0;
@@ -93,21 +88,24 @@ init_miniomp(void) {
     pthread_create(miniomp_threads+i,NULL,thread_func,(void*)(miniomp_threads_sync+i));
   }
 
-  // Initialize OpenMP default locks and default barrier
+  // Initialize OpenMP default locks and default barriers
   pthread_mutex_init(&miniomp_default_lock, NULL);
   pthread_mutex_init(&miniomp_named_lock, NULL);
 
   miniomp_barrier_init(&miniomp_barrier,miniomp_icv.nthreads_var);
   miniomp_barrier_init(&miniomp_parallel_barrier,miniomp_icv.nthreads_var);
 
-  miniomp_linked_list_init(&named_criticals);
+  // Initialize linked lists
+  miniomp_linked_list_init(&named_criticals); //Stores all named criticals' locks to free them later
+  miniomp_linked_list_init(&miniomp_task_allocations); //Stores tasks and task references to free them later
 
   // Initialize OpenMP workdescriptors for single 
   miniomp_single.value = 0;
 
-  // Initialize OpenMP task queue for task and taskloop
+  // Initialize OpenMP task queue
   TQinit(&miniomp_taskqueue);
 
+  // Initialize reference system, for both taskwait and taskgroup
   miniomp_base_task_references.running = 0;
   miniomp_base_task_references.parent = NULL;
   miniomp_base_taskgroup_references.running = 0;
@@ -137,7 +135,6 @@ printf("Joining all threads...\n");
   for(int t = 0; t < miniomp_icv.nthreads_var; ++t)
   {
     pthread_join(miniomp_threads[t],NULL);
-    //printf("Joined thread %d\n", t);
   }
 printf("Joined threads. Destroying mutexes and condition variables...\n");
 
@@ -159,7 +156,7 @@ printf("Freeing thread pool...\n");
   miniomp_barrier_destroy(&miniomp_barrier);
   miniomp_barrier_destroy(&miniomp_parallel_barrier);
 
-  printf("Freeing named criticals...\n");
+printf("Freeing named criticals...\n");
   miniomp_linked_list_destroy(&named_criticals);
   miniomp_linked_list_destroy(&miniomp_task_allocations);
 

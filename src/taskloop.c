@@ -1,5 +1,7 @@
 #include "libminiomp.h"
 
+// Taskloop has not been implemented
+
 #define GOMP_TASK_FLAG_UNTIED           (1 << 0)
 #define GOMP_TASK_FLAG_FINAL            (1 << 1)
 #define GOMP_TASK_FLAG_MERGEABLE        (1 << 2)

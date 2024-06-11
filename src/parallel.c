@@ -15,7 +15,6 @@ extern miniomp_linked_list_t miniomp_task_allocations;
 void
 GOMP_parallel (void (*fn) (void *), void *data, unsigned num_threads, unsigned int flags) {
   if(!num_threads) num_threads = omp_get_num_threads();
-//printf("Starting a parallel region using %d threads\n", num_threads);
 
   //Save for later
   int single_count = miniomp_single.value;
@@ -43,13 +42,12 @@ GOMP_parallel (void (*fn) (void *), void *data, unsigned num_threads, unsigned i
     runtime->fn = fn;
     runtime->data = data;
     runtime->done = 0;
-  //printf("Signaling thread %d\n", i);
     pthread_cond_signal(&runtime->do_work);
     pthread_mutex_unlock(&runtime->mutex);
   }
 
+  // Implicit barrier
   miniomp_barrier_wait_task(&miniomp_parallel_barrier, false);
-  //miniomp_barrier_wait(&miniomp_parallel_barrier);
 
   // At least one 'single' construct happened. Some threads may have outdated
   // single_count values if they have not participated
@@ -65,6 +63,4 @@ GOMP_parallel (void (*fn) (void *), void *data, unsigned num_threads, unsigned i
   // Destroy tasks and task references that have been allocated during this parallel region
   miniomp_linked_list_destroy(&miniomp_task_allocations);
   miniomp_linked_list_init(&miniomp_task_allocations);
-
-//printf("Ending parallel region\n");
 }

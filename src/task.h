@@ -1,5 +1,14 @@
 #include "linked_list.h"
 
+/* Used both in taskwait and taskgroup 
+ parent stores the parent reference. In taskwait, it is the reference associated to the task that created this
+ task. In taskgroup, it is the reference of the task that created the group.
+
+ When a task is created, the 'running' counters in the task and taskgroup parents are incremented, and when a 
+ task is finished the counter is decremented => When the counter is 0, all tasks have finished.
+
+ Reference correctness is managed with both pthread keys and pointers in tasks.
+*/
 typedef struct {
     void* parent;
     unsigned long running;
@@ -9,8 +18,8 @@ typedef struct {
 typedef struct {
     void (*fn)(void *);
     void (*data);
-    miniomp_task_references* ref;
-    miniomp_task_references* taskgroup;
+    miniomp_task_references* ref; //The reference of the task that created it
+    miniomp_task_references* taskgroup; //The reference of the taskgroup this task is in
 } miniomp_task_t;
 
 #define MAXELEMENTS_TQ 2048
@@ -22,7 +31,6 @@ typedef struct {
     int num_elems;
     pthread_mutex_t lock_taskqueue;
     volatile int in_execution;
-    // complete with additional fields if needed or replace previous ones
 } miniomp_taskqueue_t;
 
 extern miniomp_taskqueue_t miniomp_taskqueue;
@@ -33,6 +41,7 @@ extern miniomp_linked_list_t miniomp_task_allocations;
 void store_ref_in_list(miniomp_task_references* ref, miniomp_linked_list_t* list);
 
 // funtions to implement basic management operations on taskqueue
+// Check the implementations, but most of them require taking the lock first
 void TQinit(miniomp_taskqueue_t *task_queue);
 void TQdestroy(miniomp_taskqueue_t *task_queue);
 bool TQis_empty(miniomp_taskqueue_t *task_queue);
@@ -53,9 +62,10 @@ void GOMP_taskloop (void (*fn) (void *), void *data, void (*cpyfn) (void *, void
                long arg_size, long arg_align, unsigned flags,
                unsigned long num_tasks, int priority,
                long start, long end, long step);
-extern int miniomp_intaskgroup; 
 void GOMP_taskgroup_start (void);
 void GOMP_taskgroup_end (void);
+
+// Not implemented
 void GOMP_taskgroup_reduction_register (uintptr_t *data);
 void GOMP_taskgroup_reduction_unregister (uintptr_t *data);
 void GOMP_task_reduction_remap (size_t cnt, size_t cntorig, void **ptrs);

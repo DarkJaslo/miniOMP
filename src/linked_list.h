@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include "pthread.h"
 
+// Used for temporarily storing data that cannot be freed in a comfortable way
 typedef struct{
     void* next;
     void* data;

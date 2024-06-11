@@ -2,7 +2,6 @@
 #include <stdlib.h>
 
 // Called when encountering taskwait and taskgroup constructs
-
 void 
 GOMP_taskwait (void)
 {
@@ -39,7 +38,7 @@ GOMP_taskgroup_end (void)
         try_exec_task();
     }
 
-    // In this case the taskgroup reference can be freed safely
+    // In this case the taskgroup reference can be safely freed
     miniomp_task_references* old_ref = ref->parent;
     pthread_setspecific(miniomp_taskgroup_references_key, (void*)old_ref);
     free(ref);

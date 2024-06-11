@@ -10,7 +10,7 @@ miniomp_linked_list_t named_criticals;
 void miniomp_barrier_init(miniomp_barrier_t* barrier, int num_threads)
 {
   barrier->nthreads = num_threads;
-  barrier->reset = 0; //equivalent to { barrier->sequence = 0; barrier->count = 0; } 
+  barrier->reset = 0; //equivalent to { barrier->sequence = 0; barrier->count = 0; }, but at the same time
 }
 
 void miniomp_barrier_set(miniomp_barrier_t* barrier, int num_threads)
@@ -20,7 +20,7 @@ void miniomp_barrier_set(miniomp_barrier_t* barrier, int num_threads)
 
 void miniomp_barrier_destroy(miniomp_barrier_t* barrier)
 {
-  //No need to do anything as of now.
+  //No need to do anything here (yet).
 }
 
 void miniomp_barrier_wait(miniomp_barrier_t* barrier)
@@ -35,7 +35,7 @@ void miniomp_barrier_wait(miniomp_barrier_t* barrier)
     {
       while((__sync_fetch_and_add(&barrier->sequence,0)) == seq) //Wait for the sequence to be increased
       {
-        sched_yield(); //GREATLY improves performance as it reduces locks on sequence
+        sched_yield(); //GREATLY improves performance as it reduces simultaneous locks on sequence
       }
       break;
     }
@@ -53,7 +53,7 @@ void miniomp_barrier_wait(miniomp_barrier_t* barrier)
     //Case 3: we arrived late for the current batch, wait for the next
     while((__sync_fetch_and_add(&barrier->sequence,0)) == seq)
     {
-      sched_yield(); //GREATLY improves performance as it reduces locks on sequence
+      sched_yield(); //GREATLY improves performance as it reduces simultaneous locks on sequence
     }
   }
 }
@@ -70,10 +70,9 @@ void miniomp_barrier_wait_task(miniomp_barrier_t* barrier, bool worker)
     {
       while((__sync_fetch_and_add(&barrier->sequence,0)) == seq) //Wait for the sequence to be increased
       {
-        /* Look for tasks */
         if(worker)
           try_exec_task();
-        sched_yield(); //GREATLY improves performance as it reduces locks on sequence
+        sched_yield(); //GREATLY improves performance as it reduces simultaneous locks on sequence
       }
       break;
     }
@@ -91,8 +90,7 @@ void miniomp_barrier_wait_task(miniomp_barrier_t* barrier, bool worker)
     //Case 3: we arrived late for the current batch, wait for the next
     while((__sync_fetch_and_add(&barrier->sequence,0)) == seq)
     {
-      //try_exec_task();
-      sched_yield(); //GREATLY improves performance as it reduces locks on sequence
+      sched_yield(); //GREATLY improves performance as it reduces simultaneous locks on sequence
     }
   }
 
@@ -106,6 +104,7 @@ void miniomp_barrier_wait_task(miniomp_barrier_t* barrier, bool worker)
   }
 }
 
+// Custom deallocator for named criticals
 void miniomp_critical_node_destroy(void* data)
 {
   miniomp_named_critical_t* critical = (miniomp_named_critical_t*)data;
@@ -132,7 +131,6 @@ GOMP_critical_name_start (void **pptr) {
   // if critical is NULL it means that the lock associated to the name has not yet been allocated and initialized
   if(!critical)
   {
-    //printf("critical is null\n");
     *pptr = (miniomp_named_critical_t*)malloc(sizeof(miniomp_named_critical_t));
     critical = *pptr;
     pthread_mutex_init(&critical->mutex, NULL);
@@ -160,6 +158,7 @@ miniomp_barrier_t miniomp_barrier;
 miniomp_barrier_t miniomp_parallel_barrier;
 
 void 
-GOMP_barrier() {
+GOMP_barrier() 
+{
   miniomp_barrier_wait(&miniomp_barrier);
 }

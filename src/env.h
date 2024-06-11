@@ -1,8 +1,7 @@
 // Type declaration for Internal Control Variables (ICV) structure
 typedef struct {
   int nthreads_var;
-  int parallel_threads;
-  // Add other ICVs if needed
+  int parallel_threads; //Current threads in *the* parallel region
 } miniomp_icv_t;
 
 // Global variable storing the ICV (internal control variables) supported in our implementation

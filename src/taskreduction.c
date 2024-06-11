@@ -1,6 +1,8 @@
 #include "libminiomp.h"
 #include <stdlib.h>
 
+// Task reductions in general have not been implemented
+
 /* The format of data is:
    data[0]	cnt              (number of variables in reduction)
    data[1]	size             (size for variables in reduction)
