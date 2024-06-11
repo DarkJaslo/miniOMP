@@ -1,0 +1,19 @@
+gcc -Wall -g -O3 -std=gnu99 -march=native -I. -fopenmp tsynchtasks.c -o tsynchtasks-omp -L..//lib -lminiomp  -lm
+mini-omp is being initialized
+Setting nthreads_var ICV to 20
+Hello, I am the first task executed by thread 2 going to sleep(6)
+Here I am waiting only for the termination of the two computation loops ...
+Hello, I am the second task executed by thread 6 going to sleep(3)
+... and now waiting for all remaining tasks to finish with result = 240 and argum = 30
+Hello again ... second task executed by thread 6 finished
+Hello again ... first task executed by thread 2 finished
+All tasks finished!
+result = 330, argum = 30
+Hello from third task, up to now result=339 and argum = 30
+Back in main ... result = 339
+Telling all threads to stop...
+Joining all threads...
+Joined threads. Destroying mutexes and condition variables...
+Freeing thread pool...
+Freeing named criticals...
+mini-omp is finalized

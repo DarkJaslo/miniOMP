@@ -1,0 +1,43 @@
+gcc -Wall -g -O3 -std=gnu99 -march=native -I. -fopenmp ttask1.c -o ttask1-omp -L..//lib -lminiomp  -lm
+mini-omp is being initialized
+Setting nthreads_var ICV to 20
+I am thread 0, responsible for the generation of tasks
+I am the first task; however I am immediately executed by the creator (0) 
+I am the second task executed by 0
+I am instance 0 of the third task executed by 0
+I am instance 1 of the third task executed by 0
+I am instance 2 of the third task executed by 0
+I am instance 3 of the third task executed by 0
+I am instance 4 of the third task executed by 0
+I am instance 5 of the third task executed by 0
+I am instance 6 of the third task executed by 0
+I am instance 7 of the third task executed by 0
+I am instance 8 of the third task executed by 0
+I am instance 9 of the third task executed by 0
+Hello from the last task executed by thread 0, with result=0 and argum = 11
+Hello from the last task executed by thread 19, with result=75 and argum = 1
+Hello from the last task executed by thread 0, with result=75 and argum = 1
+Hello from the last task executed by thread 19, with result=75 and argum = 1
+Hello from the last task executed by thread 6, with result=75 and argum = 1
+Hello from the last task executed by thread 6, with result=75 and argum = 1
+Hello from the last task executed by thread 7, with result=75 and argum = 1
+Hello from the last task executed by thread 1, with result=75 and argum = 1
+Hello from the last task executed by thread 7, with result=75 and argum = 1
+Hello from the last task executed by thread 3, with result=75 and argum = 1
+Hello from the last task executed by thread 10, with result=75 and argum = 1
+Hello from the last task executed by thread 13, with result=75 and argum = 1
+Hello from the last task executed by thread 1, with result=75 and argum = 1
+Hello from the last task executed by thread 13, with result=75 and argum = 1
+Hello from the last task executed by thread 18, with result=75 and argum = 1
+Hello from the last task executed by thread 17, with result=75 and argum = 1
+Hello from the last task executed by thread 16, with result=75 and argum = 1
+Hello from the last task executed by thread 6, with result=75 and argum = 1
+Hello from the last task executed by thread 4, with result=75 and argum = 1
+Hello from the last task executed by thread 3, with result=75 and argum = 1
+Back in main ... result = 75
+Telling all threads to stop...
+Joining all threads...
+Joined threads. Destroying mutexes and condition variables...
+Freeing thread pool...
+Freeing named criticals...
+mini-omp is finalized

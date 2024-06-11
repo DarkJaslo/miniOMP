@@ -1,0 +1,42 @@
+gcc -Wall -g -O3 -std=gnu99 -march=native -I. -fopenmp tsingle.c -o tsingle-gomp -lm
+Hello! I'm thread 0 in first loop - iteration 0
+Hello! I'm thread 0 in first loop - iteration 1
+Hello! I'm thread 0 in first loop - iteration 2
+Hello! I'm thread 0 in first loop - iteration 3
+Hello! I'm thread 0 in first loop - iteration 4
+Hello! I'm thread 0 in first loop - iteration 5
+Hello! I'm thread 0 in first loop - iteration 6
+Hello! I'm thread 0 in first loop - iteration 7
+Hello! I'm thread 0 in first loop - iteration 8
+Hello! I'm thread 0 in first loop - iteration 9
+Hello! I'm thread 0 in second loop - iteration 0
+Hello! I'm thread 6 in second loop - iteration 1
+Hello! I'm thread 8 in second loop - iteration 8
+Hello! I'm thread 2 in second loop - iteration 5
+Hello! I'm thread 12 in second loop - iteration 4
+Hello! I'm thread 5 in second loop - iteration 9
+Thread 7 finishing the execution of the parallel region
+Thread 18 finishing the execution of the parallel region
+Hello! I'm thread 16 in second loop - iteration 3
+Thread 1 finishing the execution of the parallel region
+Thread 3 finishing the execution of the parallel region
+Thread 9 finishing the execution of the parallel region
+Thread 11 finishing the execution of the parallel region
+Hello! I'm thread 15 in second loop - iteration 7
+Hello! I'm thread 10 in second loop - iteration 6
+Hello! I'm thread 4 in second loop - iteration 2
+Thread 13 finishing the execution of the parallel region
+Thread 19 finishing the execution of the parallel region
+Thread 14 finishing the execution of the parallel region
+Thread 17 finishing the execution of the parallel region
+Thread 0 finishing the execution of the parallel region
+Thread 6 finishing the execution of the parallel region
+Thread 12 finishing the execution of the parallel region
+Thread 2 finishing the execution of the parallel region
+Thread 8 finishing the execution of the parallel region
+Thread 5 finishing the execution of the parallel region
+Thread 16 finishing the execution of the parallel region
+Thread 15 finishing the execution of the parallel region
+Thread 4 finishing the execution of the parallel region
+Thread 10 finishing the execution of the parallel region
+Back in main ... finishing the program

@@ -1,0 +1,61 @@
+gcc -Wall -g -O3 -std=gnu99 -march=native -I. -fopenmp tsynch1.c -o tsynch1-gomp -lm
+Values for even and odd are 1000 and 1000, respectively
+Values for even and odd are 1000 and 1000, respectively
+Values for even and odd are 1000 and 1000, respectively
+Values for even and odd are 1000 and 1000, respectively
+Values for even and odd are 1000 and 1000, respectively
+Values for even and odd are 1000 and 1000, respectively
+Values for even and odd are 1000 and 1000, respectively
+Values for even and odd are 1000 and 1000, respectively
+Values for even and odd are 1000 and 1000, respectively
+Values for even and odd are 1000 and 1000, respectively
+Values for even and odd are 1000 and 1000, respectively
+Values for even and odd are 1000 and 1000, respectively
+Values for even and odd are 1000 and 1000, respectively
+Values for even and odd are 1000 and 1000, respectively
+Values for even and odd are 1000 and 1000, respectively
+Values for even and odd are 1000 and 1000, respectively
+Values for even and odd are 1000 and 1000, respectively
+Values for even and odd are 1000 and 1000, respectively
+Values for even and odd are 1000 and 1000, respectively
+Values for even and odd are 1000 and 1000, respectively
+result = 40000
+result = 40000
+result = 40000
+result = 40000
+result = 40000
+result = 40000
+result = 40000
+result = 40000
+result = 40000
+result = 40000
+result = 40000
+result = 40000
+result = 40000
+result = 40000
+result = 40000
+result = 40000
+result = 40000
+result = 40000
+result = 40000
+result = 40000
+To double check ... new result = 40020
+To double check ... new result = 40020
+To double check ... new result = 40020
+To double check ... new result = 40020
+To double check ... new result = 40020
+To double check ... new result = 40020
+To double check ... new result = 40020
+To double check ... new result = 40020
+To double check ... new result = 40020
+To double check ... new result = 40020
+To double check ... new result = 40020
+To double check ... new result = 40020
+To double check ... new result = 40020
+To double check ... new result = 40020
+To double check ... new result = 40020
+To double check ... new result = 40020
+To double check ... new result = 40020
+To double check ... new result = 40020
+To double check ... new result = 40020
+To double check ... new result = 40020

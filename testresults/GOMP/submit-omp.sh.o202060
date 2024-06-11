@@ -1,0 +1,6 @@
+gcc -Wall -g -O3 -std=gnu99 -march=native -I. -fopenmp tsynch2.c -o tsynch2-gomp -lm
+Execution time with 20 threads:
+  - named critical: 1.056946
+  - unnamed critical: 0.789820
+  - barrier: 0.198728
+Check value=2200004000000.000000

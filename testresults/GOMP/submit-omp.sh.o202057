@@ -1,0 +1,10 @@
+gcc -Wall -g -O3 -std=gnu99 -march=native -I. -fopenmp tparallel1.c -o tparallel1-gomp -lm
+Starting the execution of main program
+Thread 3 finished the execution of foo
+Thread 0 finished the execution of foo
+Thread 1 finished the execution of foo
+Thread 4 finished the execution of foo
+Thread 2 finished the execution of foo
+Thread 5 finished the execution of foo
+first = 20480, second = 1344, third = 2080, x = 1023
+Finishing the execution of main program

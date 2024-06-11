@@ -18,7 +18,6 @@ void foo() {
 
     #pragma omp taskgroup
     {
-        //for(int j = 0; j < 2; ++j)
         #pragma omp task
         {
             printf("Hello, I am thread %d executing a 1st-level task\n",omp_get_thread_num() );

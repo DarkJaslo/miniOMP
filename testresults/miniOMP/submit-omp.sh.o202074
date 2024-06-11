@@ -1,0 +1,66 @@
+gcc -Wall -g -O3 -std=gnu99 -march=native -I. -fopenmp tsynchnested.c -o tsynchnested-omp -L..//lib -lminiomp  -lm
+mini-omp is being initialized
+Setting nthreads_var ICV to 20
+Hello, I am thread 0. Creating tasks...
+Hello, I am a random task
+Waiting for all tasks to finish...
+Hello, I am thread 2 executing a 1st-level task
+Waiting for level 2,3,4 and 5 tasks
+Hello, I am thread 3 executing a 2nd-level task
+Hello, I am thread 17 executing a 3rd-level task
+Hello, I am thread 16 executing a 4th-level task
+Hello, I am thread 1 executing a 5th-level task
+Waiting for level 2,3,4 and 5 tasks
+Hello, I am thread 0 executing a 2nd-level task
+Hello, I am thread 15 executing a 3rd-level task
+Hello, I am thread 3 executing a 4th-level task
+Hello, I am thread 13 executing a 5th-level task
+Hello, I am thread 11 executing a 2nd-level task
+Waiting for level 2,3,4 and 5 tasks
+Hello, I am thread 16 executing a 3rd-level task
+Hello, I am thread 8 executing a 4th-level task
+Hello, I am thread 1 executing a 5th-level task
+Hello, I am thread 7 executing a 2nd-level task
+Waiting for level 2,3,4 and 5 tasks
+Hello, I am thread 1 executing a 3rd-level task
+Hello, I am thread 3 executing a 4th-level task
+Hello, I am thread 19 executing a 5th-level task
+Hello, I am thread 10 executing a 2nd-level task
+Waiting for level 2,3,4 and 5 tasks
+Hello, I am thread 14 executing a 3rd-level task
+Hello, I am thread 17 executing a 4th-level task
+Hello, I am thread 3 executing a 5th-level task
+Waiting for level 2,3,4 and 5 tasks
+Hello, I am thread 13 executing a 2nd-level task
+Hello, I am thread 11 executing a 3rd-level task
+Hello, I am thread 6 executing a 4th-level task
+Hello, I am thread 0 executing a 5th-level task
+Waiting for level 2,3,4 and 5 tasks
+Hello, I am thread 3 executing a 2nd-level task
+Hello, I am thread 18 executing a 3rd-level task
+Hello, I am thread 19 executing a 4th-level task
+Hello, I am thread 9 executing a 5th-level task
+Hello, I am thread 1 executing a 2nd-level task
+Waiting for level 2,3,4 and 5 tasks
+Hello, I am thread 19 executing a 3rd-level task
+Hello, I am thread 2 executing a 4th-level task
+Hello, I am thread 12 executing a 5th-level task
+Waiting for level 2,3,4 and 5 tasks
+Hello, I am thread 16 executing a 2nd-level task
+Hello, I am thread 7 executing a 3rd-level task
+Hello, I am thread 11 executing a 4th-level task
+Hello, I am thread 2 executing a 5th-level task
+Waiting for level 2,3,4 and 5 tasks
+Hello, I am thread 10 executing a 2nd-level task
+Hello, I am thread 11 executing a 3rd-level task
+Hello, I am thread 0 executing a 4th-level task
+Hello, I am thread 2 executing a 5th-level task
+Hello, I am thread 2 finishing a 1st-level task
+Tasks have finished, nothing else should be showing up here
+Back in main... result = 141
+Telling all threads to stop...
+Joining all threads...
+Joined threads. Destroying mutexes and condition variables...
+Freeing thread pool...
+Freeing named criticals...
+mini-omp is finalized
